@@ -22,10 +22,37 @@
 
 ## 🛠️ Arquitectura del Ecosistema
 
-El código fuente está fragmentado en dos motores principales que se comunican entre sí:
+El código fuente está organizado en una arquitectura de N-Capas, fragmentado en dos motores principales que se comunican entre sí y un bloque de base de datos:
 
-1. **`/frontend`**: Capa de presentación dinámica armada sobre componente en *Vite + React*. Resuelve el inicio de sesión, maneja el estado local y toma de decisiones a través del PWA.
-2. **`/backend`**: Núcleo robusto Node.js/Express.js (ESM). Oculta las operaciones de IA (`Tesseract`), calcula estatus cronológicos e interactúa con la base PostgreSQL mediante privilegios avanzados cuando no se puede desde cliente.
+```text
+VegetableAI/
+├── backend/                  # Motor de APIs y OCR (Node.js/Express)
+│   ├── src/
+│   │   ├── config/           # Instancia global Supabase (Admin Key)
+│   │   ├── controllers/      # Funciones puras para procesar peticiones HTTP (CRUD)
+│   │   ├── middlewares/      # Filtros JWT y Multer (Carga de Fotos en RAM)
+│   │   ├── routes/           # Mapa unificado de Endpoints
+│   │   └── services/         # Algoritmos OCR Tesseract y Funciones Cronológicas
+│   ├── server.js             # Punto de entrada de la orquestación Express
+│   └── .env                  # Variables privadas backend
+│
+├── frontend/                 # Aplicación Nativa PWA (React + Vite)
+│   ├── public/               # Íconos y dependencias estáticas
+│   ├── src/
+│   │   ├── pages/            # Escenas primarias (Dashboard, Scanner, Profile, Login)
+│   │   ├── App.jsx           # Ruteo protector de React y lógica persistente
+│   │   ├── main.jsx          # Cúspide del árbol virtual del explorador
+│   │   ├── index.css         # Diseño UI Glassmorphism de alto nivel
+│   │   └── supabaseClient.js # Handshake web con Supabase (Anon Key)
+│   ├── vite.config.js        # Compilación con soporte nativo de PWA (Workbox)
+│   └── .env.local            # Variables locales del frontend
+│
+└── supabase/
+    └── schema.sql            # Molde de Tablas, Triggers automatizados y Seguridad RLS
+```
+
+1. **`/frontend`**: Capa de presentación armada en *Vite + React*. Maneja sesiones y UI UX offline.
+2. **`/backend`**: Núcleo robusto. Atrapa operaciones de IA y base de datos evitando estresar los celulares de los usuarios.
 
 ---
 
