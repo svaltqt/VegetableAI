@@ -1,0 +1,24 @@
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+
+// Importación Rutas Modulares
+import ocrRoutes from './src/routes/ocr.routes.js';
+import inventoryRoutes from './src/routes/inventory.routes.js';
+import usersRoutes from './src/routes/users.routes.js';
+
+dotenv.config();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// Montaje N-Capas
+app.use('/api/ocr', ocrRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/users', usersRoutes);
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 VegetableAI App viva en puerto ${PORT}`);
+});
