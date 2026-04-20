@@ -1,105 +1,90 @@
-# 🌱 VegetableAI
+# 🥦 VegetableAI - Intelligent Inventory PWA
 
-Sistema PWA para captura OCR con backend de IA y frontend web.
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![React](https://img.shields.io/badge/React-18.x-61dafb.svg?logo=react)
+![Node.js](https://img.shields.io/badge/Node.js-20.x-339933.svg?logo=nodedotjs)
+![Supabase](https://img.shields.io/badge/Supabase-DB%20&%20Auth-3ECF8E.svg?logo=supabase)
+![Tesseract.js](https://img.shields.io/badge/OCR-Tesseract.js-lightgrey.svg)
 
----
-
-## 🔑 Configuración de Claves
-
-Debes agregar las credenciales de tu proyecto de Supabase en los siguientes archivos:
-
-`/backend/.env`
-`/frontend/.env.local`
-
-Asegúrate de incluir correctamente:
-
-* URL del proyecto
-* API Key
+**VegetableAI** es una Aplicación Web Progresiva (PWA) de vanguardia diseñada para combatir el desperdicio de alimentos. Mediante inteligencia artificial (OCR) lee las fechas de caducidad de tus productos desde la cámara de tu teléfono y gestiona tu inventario calculando su tiempo de vida de forma inteligente.
 
 ---
 
-## 🚀 Levantar los Servidores
+## ✨ Características Principales
 
-Abre **dos terminales**:
+- **📸 OCR de Última Generación**: Utiliza un micro-servicio con `Tesseract.js` en el backend capaz de extraer fechas en formatos numéricos (`12/04/2026`) y alfanuméricos en español/inglés (`12 ABR 2026`).
+- **📱 PWA Nativo Total**: Totalmente instalable en iOS y Android gracias a *Vite PWA Plugin*, comportándose como una app real en tu pantalla de inicio.
+- **🔐 Seguridad de Nivel Bancario**: Integración estricta con **Supabase Auth** y **Row Level Security (RLS)** que asegura la absoluta privacidad de tus datos mediante JWT's.
+- **🏗️ Arquitectura N-Capas**: Backend desacoplado y escalable escrito en NodeJS, agrupado elegantemente en Rutas, Controladores, Servicios y Middlewares de autorización.
+- **🎨 UI Glassmorphism Premium**: Interfaz deslumbrante estilo "vidrio" creada exclusivamente en CSS puro (modo oscuro envolvente).
 
-### 🖥️ Terminal 1 — Backend (Motor de IA)
+---
 
+## 🛠️ Arquitectura del Ecosistema
+
+El código fuente está fragmentado en dos motores principales que se comunican entre sí:
+
+1. **`/frontend`**: Capa de presentación dinámica armada sobre componente en *Vite + React*. Resuelve el inicio de sesión, maneja el estado local y toma de decisiones a través del PWA.
+2. **`/backend`**: Núcleo robusto Node.js/Express.js (ESM). Oculta las operaciones de IA (`Tesseract`), calcula estatus cronológicos e interactúa con la base PostgreSQL mediante privilegios avanzados cuando no se puede desde cliente.
+
+---
+
+## 🚀 Guía Exhaustiva de Instalación Local
+
+### 1. Requisitos Previos Obligatorios
+- [Node.js](https://nodejs.org/es/) versión v16+.
+- Una cuenta abierta en [Supabase](https://supabase.com/) (Free Tier).
+
+### 2. Configurar la Nube de Base de Datos
+1. Inicia un nuevo proyecto en la consola de Supabase.
+2. Navega rápido a la sección de **SQL Editor** y pega íntegramente el contenido de nuestro archivo maestro localizado en: 👉 `supabase/schema.sql` y ejécutalo en RUN.
+3. Se generarán automáticamente tus tablas de perfiles, los disparadores (triggers) de creación automática y todo el escudo hiper-seguro de **Políticas RLS**.
+
+### 3. Encender el "Cerebro" (Backend)
+En una consola, sitúate en la raíz del proyecto y ve a backend:
 ```bash
 cd backend
+npm install
+```
+Añade o crea un archivo `.env` incluyendo tu URL global y tu Llave Administradora Roles (*Service Role Key* crucial para purgados o reestructuraciones):
+```env
+SUPABASE_URL=YOUR_SUPABASE_PROJECT_URL
+SUPABASE_SERVICE_ROLE_KEY=YOUR_SUPABASE_SERVICE_ROLE_KEY
+PORT=3000
+```
+Arranca el servidor Node:
+```bash
 npm start
 ```
 
-Deberías ver:
-
-```
-🚀 VegetableAI Backend vivo en puerto 3000
-```
-
----
-
-### 🌐 Terminal 2 — Frontend (Interfaz PWA)
-
+### 4. Iluminar la "Cara" (Frontend)
+Abre otra pestaña nueva en tu terminal y dirígete al frontend:
 ```bash
 cd frontend
-npm run dev
+npm install
 ```
-
----
-
-## 📱 Probar en el celular
-
-Este proyecto está pensado como una **PWA con OCR**, así que puedes probarlo directamente en tu móvil.
-
-1. Ejecuta el frontend (`npm run dev`)
-2. Busca la IP local que aparece en consola, algo como:
-
+Acá generarás un archivo diferente llamado `.env.local` empleando estrictamente tu Llave Anónima y segura (*Publishable / Anon*):
+```env
+VITE_SUPABASE_URL=YOUR_SUPABASE_PROJECT_URL
+VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
 ```
-http://192.168.X.X:5173
-```
-
-3. Abre esa URL desde tu celular (misma red WiFi)
-
-💡 Gracias a la directiva `capture="environment"`, el botón de escanear abrirá la **cámara trasera**, como una app nativa.
-
----
-
-## ❓ Acceso desde el celular
-
-Crear un proyecto en tu PC **NO lo hace automáticamente accesible en internet**, pero sí puedes acceder desde tu celular dentro de la misma red local.
-
-### ✔️ Requisitos
-
-* Ambos dispositivos deben estar en la **misma red WiFi**
-* El servidor debe escuchar en la red, no solo en `localhost`
-
-### 🔧 Configuración en Vite
-
-Ejecuta:
-
+Ejecuta la capa gráfica. (Se ha dejado el flag `--host` habilitado por defecto para que conecte tu PWA localmente con cualquier teléfono de la misma red WiFi).
 ```bash
-npm run dev -- --host
-```
-
-O configura `vite.config.js`:
-
-```js
-export default {
-  server: {
-    host: true
-  }
-}
+npm run dev --host
 ```
 
 ---
 
-## 🔥 Resumen
+## 📖 Endpoints Primarios REST (Backend)
 
-* `localhost` → solo accesible desde tu PC
-* `192.168.X.X` → accesible desde tu celular (misma red)
-* Internet (global) → necesitas deploy (Vercel, Netlify, etc.)
+| Método | Endpoint (Localhost:3000) | Descripción | Requisito de Entrada |
+|---|---|---|---|
+| **POST** | `/api/ocr` | Detecta las fechas de vencimiento de las fotos con Tesseract AI | Multi-Part `image` enviado en Memoria Pura |
+| **GET** | `/api/users/me` | Retorna los metadatos completos y estatus de preferencias del Usuario | `Bearer JWT` Header |
+| **GET** | `/api/inventory` | Llama los productos y los pasa por filtro analítico devolviendo "Vencido" o "Vigente".| `Bearer JWT` Header |
+| **POST** | `/api/inventory` | Registra eficientemente un alimento y fecha salvada. | `{ name, expiration_date, category }` |
+| **DELETE**| `/api/users/me` | Destruye identidad universal por medio del admin. | Auth Token |
 
 ---
 
-
-Supabase pass : Papitasfritas#2026
-Database password: Papitasfritas#2026
+*Cosecha datos organizados, no desperdicio de cocina.* 🌱
