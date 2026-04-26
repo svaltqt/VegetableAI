@@ -1,64 +1,68 @@
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link, Navigate } from 'react-router-dom';
-import { Camera, List, User as UserIcon } from 'lucide-react';
-import Dashboard from './pages/Dashboard';
-import Scanner from './pages/Scanner';
-import Login from './pages/Login';
-import Profile from './pages/Profile';
-import { supabase } from './supabaseClient';
+import { useEffect } from "react"
+import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { Toaster } from "sonner"
+import { ThemeProvider } from "@/components/theme/theme-provider"
+import { AppShell } from "@/components/layout/AppShell"
+import { ProtectedRoute, PublicOnlyRoute } from "@/components/auth/ProtectedRoute"
+import { useAuthStore } from "@/store/auth.store"
+import { ROUTES } from "@/config/routes"
+
+import Login from "@/pages/Login"
+import Register from "@/pages/Register"
+import ForgotPassword from "@/pages/ForgotPassword"
+import Dashboard from "@/pages/Dashboard"
+import Inventory from "@/pages/Inventory"
+import ProductForm from "@/pages/ProductForm"
+import Scanner from "@/pages/Scanner"
+import Alerts from "@/pages/Alerts"
+import Profile from "@/pages/Profile"
+import FoodStatus from "@/pages/FoodStatus"
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 30 * 1000, refetchOnWindowFocus: false, retry: 1 },
+  },
+})
 
 function App() {
-  const [session, setSession] = useState(null);
-  const [loading, setLoading] = useState(true);
-
+  const initialize = useAuthStore((s) => s.initialize)
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
+    initialize()
+  }, [initialize])
 
-    supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-  }, []);
-
-  if (loading) {
-    return <div className="pwa-container" style={{ textAlign: 'center', marginTop: '20vh' }}>Cargando ecosistema... 🌿</div>;
-  }
-
-  // Si no está logueado, forzamos la ruta al Login
-  if (!session) {
-    return (
-      <div className="pwa-container">
-        <Routes>
-          <Route path="/*" element={<Login />} />
-        </Routes>
-      </div>
-    );
-  }
-
-  // Interfaz de Usuario Autenticado
   return (
-    <div className="pwa-container">
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h2 style={{ margin: 0, fontWeight: 700, color: 'var(--accent)' }}>VegetableAI</h2>
-        <nav style={{ display: 'flex', gap: '15px' }}>
-          <Link to="/" style={{ color: 'var(--text-main)' }}><List /></Link>
-          <Link to="/scanner" style={{ color: 'var(--text-main)' }}><Camera /></Link>
-          <Link to="/profile" style={{ color: 'var(--text-main)' }}><UserIcon /></Link>
-        </nav>
-      </header>
+    <ThemeProvider defaultTheme="light">
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <Routes>
+            <Route element={<PublicOnlyRoute />}>
+              <Route path={ROUTES.LOGIN} element={<Login />} />
+              <Route path={ROUTES.REGISTER} element={<Register />} />
+              <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
+            </Route>
 
-      <main>
-        <Routes>
-          <Route path="/" element={<Dashboard session={session} />} />
-          <Route path="/scanner" element={<Scanner token={session.access_token} />} />
-          <Route path="/profile" element={<Profile session={session} />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
-    </div>
-  );
+            <Route element={<ProtectedRoute />}>
+              <Route element={<AppShell />}>
+                <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
+                <Route path={ROUTES.INVENTORY} element={<Inventory />} />
+                <Route path={ROUTES.PRODUCT_NEW} element={<ProductForm />} />
+                <Route path={ROUTES.PRODUCT_EDIT} element={<ProductForm />} />
+                <Route path={ROUTES.SCANNER} element={<Scanner />} />
+                <Route path={ROUTES.ALERTS} element={<Alerts />} />
+                <Route path={ROUTES.PROFILE} element={<Profile />} />
+                <Route path={ROUTES.FOOD_STATUS} element={<FoodStatus />} />
+              </Route>
+            </Route>
+
+            <Route path="/" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
+            <Route path="*" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
+          </Routes>
+        </Router>
+        <Toaster position="top-right" richColors closeButton expand />
+      </QueryClientProvider>
+    </ThemeProvider>
+  )
 }
 
-export default App;
+export default App

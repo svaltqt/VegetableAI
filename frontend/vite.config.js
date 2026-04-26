@@ -1,38 +1,60 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import path from 'node:path'
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@': path.resolve(process.cwd(), './src'),
+    },
+  },
+  server: {
+    host: true,
+    port: 5173,
+  },
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
+      includeAssets: ['favicon.svg', 'icons/icon.svg', 'icons/maskable.svg'],
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
+        navigateFallback: 'index.html',
       },
       manifest: {
         name: 'VegetableAI',
-        short_name: 'VegAI',
-        description: 'Gestión inteligente de alimentos y vencimientos por OCR',
-        theme_color: '#0f172a',
-        background_color: '#0f172a',
+        short_name: 'VegetableAI',
+        description: 'Gestiona tu inventario de alimentos y evita el desperdicio mediante OCR.',
+        lang: 'es',
+        dir: 'ltr',
+        start_url: '/',
+        scope: '/',
         display: 'standalone',
         orientation: 'portrait',
+        theme_color: '#16a34a',
+        background_color: '#ffffff',
+        categories: ['food', 'lifestyle', 'productivity'],
         icons: [
+          { src: '/icons/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+          { src: '/icons/maskable.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },
+        ],
+        shortcuts: [
           {
-            src: '/pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png'
+            name: 'Escanear producto',
+            short_name: 'Escanear',
+            description: 'Captura una fecha de vencimiento con OCR.',
+            url: '/scanner',
           },
           {
-            src: '/pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
-          }
-        ]
-      }
-    })
-  ]
+            name: 'Ver inventario',
+            short_name: 'Inventario',
+            description: 'Consulta tu lista de alimentos.',
+            url: '/inventory',
+          },
+        ],
+      },
+    }),
+  ],
 })

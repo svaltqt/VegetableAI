@@ -1,0 +1,14 @@
+export const ROUTES = {
+  ROOT: "/",
+  LOGIN: "/login",
+  REGISTER: "/register",
+  FORGOT_PASSWORD: "/forgot-password",
+  DASHBOARD: "/dashboard",
+  INVENTORY: "/inventory",
+  PRODUCT_NEW: "/inventory/new",
+  PRODUCT_EDIT: "/inventory/:id",
+  SCANNER: "/scanner",
+  ALERTS: "/alerts",
+  PROFILE: "/profile",
+  FOOD_STATUS: "/food-status",
+}

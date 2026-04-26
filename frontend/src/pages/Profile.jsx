@@ -1,167 +1,329 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+import { useEffect, useRef, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Camera, LogOut, Loader2, Trash2, Bell } from "lucide-react"
+import { Topbar } from "@/components/layout/Topbar"
+import { PageContainer } from "@/components/layout/PageContainer"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Separator } from "@/components/ui/separator"
+import { ConfirmDialog } from "@/components/common/ConfirmDialog"
+import { ThemeToggle } from "@/components/theme/theme-toggle"
+import { useAuthStore } from "@/store/auth.store"
+import { usePushStore } from "@/store/push.store"
+import { useToast } from "@/hooks/useToast"
+import { usersService } from "@/services/users.service"
+import { profileSchema } from "@/utils/validation"
+import { ALERT_PREFERENCES, IMAGE_RULES } from "@/config/constants"
+import { ROUTES } from "@/config/routes"
+import { getInitials } from "@/utils/initials"
+import { validateImageFile } from "@/utils/images"
 
-const Profile = ({ session }) => {
-  const [loading, setLoading] = useState(false);
-  
-  // States Profiling
-  const [name, setName] = useState('');
-  const [preferences, setPreferences] = useState({});
-  const [email, setEmail] = useState('');
-  
-  // Security
-  const [newPassword, setNewPassword] = useState('');
+export default function Profile() {
+  const navigate = useNavigate()
+  const toast = useToast()
+  const profile = useAuthStore((s) => s.profile)
+  const refreshProfile = useAuthStore((s) => s.refreshProfile)
+  const signOut = useAuthStore((s) => s.signOut)
+  const setProfile = useAuthStore((s) => s.setProfile)
+
+  const push = usePushStore()
+  const fileInputRef = useRef(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirmSignOut, setConfirmSignOut] = useState(false)
+  const [uploading, setUploading] = useState(false)
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting, isDirty },
+    reset,
+  } = useForm({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      fullName: profile?.full_name || "",
+      alertDays: profile?.alert_days || [3, 1, 0],
+    },
+  })
 
   useEffect(() => {
-    if (session?.user) {
-      setEmail(session.user.email);
-      // Extraer nombre de perfil desde Node
-      fetch('http://localhost:3000/api/users/me', {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
+    if (profile) {
+      reset({
+        fullName: profile.full_name || "",
+        alertDays: profile.alert_days || [3, 1, 0],
       })
-        .then(res => res.json())
-        .then(data => {
-            if(data.name) setName(data.name);
-            if(data.preferences) setPreferences(data.preferences);
-        })
-        .catch(console.error);
     }
-  }, [session]);
+  }, [profile, reset])
 
-  const handleUpdateProfile = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const selectedAlerts = watch("alertDays") || []
+
+  const toggleAlertDay = (day) => {
+    const next = selectedAlerts.includes(day)
+      ? selectedAlerts.filter((d) => d !== day)
+      : [...selectedAlerts, day].sort((a, b) => b - a)
+    setValue("alertDays", next, { shouldDirty: true, shouldValidate: true })
+  }
+
+  const onSubmit = async (data) => {
     try {
-      // 1. Update Core Supabase Auth Email (requiere SMTP activo)
-      if (email !== session.user.email) {
-        const { error: errEmail } = await supabase.auth.updateUser({ email });
-        if (errEmail) alert("Error Email (Requiere SMTP activo): " + errEmail.message);
-      }
-
-      // 2. Modifica el Perfil (Nombre) relacional
-      const res = await fetch('http://localhost:3000/api/users/me', {
-        method: 'PUT',
-        headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}` 
-        },
-        body: JSON.stringify({ name })
-      });
-      const data = await res.json();
-      
-      if (!res.ok) throw new Error(data.error);
-      alert('Perfil y datos general actualizados');
-    } catch (error) {
-      alert(error.message);
-    } finally {
-      setLoading(false);
+      const updated = await usersService.update({
+        full_name: data.fullName,
+        alert_days: data.alertDays,
+      })
+      setProfile(updated)
+      toast.success("Perfil actualizado.")
+    } catch (err) {
+      toast.error(err.message || "No fue posible guardar los cambios.")
     }
-  };
+  }
 
-  const handleUpdatePassword = async (e) => {
-    e.preventDefault();
-    if (!newPassword) return;
-    setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) alert("Error: " + error.message);
-    else alert("Contraseña protegida con éxito!");
-    setNewPassword('');
-    setLoading(false);
-  };
-
-  const handleDisableAccount = async () => {
-    if(!window.confirm("¿Estás seguro de poner en oculto tu cuenta? No recibirás notificaciones push.")) return;
-    setLoading(true);
-    await fetch('http://localhost:3000/api/users/me', {
-        method: 'PUT',
-        headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}` 
-        },
-        body: JSON.stringify({ preferences: { ...preferences, status: 'disabled' } })
-    });
-    alert("Cuenta deshabilitada. Tus datos están a salvo pero pausados.");
-    setLoading(false);
-  };
+  const handleAvatarUpload = async (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ""
+    if (!file) return
+    const validation = validateImageFile(file)
+    if (!validation.valid) {
+      toast.error(validation.message)
+      return
+    }
+    setUploading(true)
+    try {
+      const updated = await usersService.uploadAvatar(file)
+      setProfile(updated)
+      toast.success("Foto de perfil actualizada.")
+    } catch (err) {
+      toast.error(err.message || "No fue posible subir la imagen.")
+    } finally {
+      setUploading(false)
+    }
+  }
 
   const handleDeleteAccount = async () => {
-    if(!window.confirm("ZONA PELIGROSA: Perderás TODO tu inventario de inmediato y tu correo será liberado. ¿Borrar?")) return;
-    
-    setLoading(true);
-    const res = await fetch('http://localhost:3000/api/users/me', {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-    });
-
-    if (res.ok) {
-        alert("Tu cuenta fue purgada del Matrix PWA.");
-        supabase.auth.signOut(); // Lo empujará al Login.jsx
-    } else {
-        const { error } = await res.json();
-        alert("Fallo fatal: " + error);
-        setLoading(false);
+    try {
+      await usersService.remove()
+      await signOut()
+      toast.success("Cuenta eliminada correctamente.")
+      navigate(ROUTES.LOGIN, { replace: true })
+    } catch (err) {
+      toast.error(err.message || "No fue posible eliminar la cuenta.")
     }
-  };
+  }
+
+  const handleSignOut = async () => {
+    await signOut()
+    navigate(ROUTES.LOGIN, { replace: true })
+  }
+
+  const handlePushToggle = async (checked) => {
+    try {
+      if (checked) await push.enable()
+      else await push.disable()
+      toast.success(
+        checked
+          ? "Notificaciones activadas. Te avisaremos cuando un producto esté próximo a vencer."
+          : "Notificaciones push desactivadas."
+      )
+    } catch (err) {
+      toast.error(err.message || "No fue posible actualizar las notificaciones.")
+    }
+  }
 
   return (
-    <div style={{ paddingBottom: '30px' }}>
-      <h1 style={{ fontWeight: 700, marginBottom: '0.5rem' }}>Configuración ⚙️</h1>
-      <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>Ajusta tu experiencia VegetableAI</p>
-      
-      {/* SECCIÓN DATOS PERSONALES */}
-      <div className="glass-panel" style={{ borderLeft: '4px solid var(--accent)' }}>
-        <h3>Datos base del Perfil</h3>
-        <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div>
-            <label style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Tu Apodo / Nombre</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Chef Maestro" />
-          </div>
-          <div>
-            <label style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Correo Frecuente</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Tu correo de login actual" style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px' }} />
-          </div>
-          <button className="cta-button" type="submit" disabled={loading} style={{ justifyContent: 'center' }}>
-            {loading ? 'Sincronizando...' : 'Guardar Información'}
-          </button>
-        </form>
-      </div>
+    <>
+      <Topbar
+        title="Perfil y preferencias"
+        description="Configura tus datos personales y preferencias de alertas."
+      />
 
-      {/* SECCIÓN CLAVES */}
-      <div className="glass-panel" style={{ borderLeft: '4px solid var(--warning)', marginTop: '20px' }}>
-        <h3>Seguridad Intangible</h3>
-        <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <input type="password" placeholder="Escribe para pisar clave actual..." value={newPassword} onChange={(e) => setNewPassword(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px' }} />
-          <button className="cta-button" type="submit" disabled={loading} style={{ justifyContent: 'center', background: 'transparent', border: '1px solid var(--warning)', color: 'var(--warning)' }}>
-            Cambiar Contraseña
-          </button>
-        </form>
-      </div>
+      <PageContainer className="max-w-3xl space-y-5">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="relative">
+                <Avatar className="h-20 w-20 ring-4 ring-background">
+                  {profile?.avatar_url ? (
+                    <AvatarImage src={profile.avatar_url} alt={profile?.full_name} />
+                  ) : null}
+                  <AvatarFallback className="text-xl">
+                    {getInitials(profile?.full_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary/90 transition"
+                  aria-label="Cambiar foto de perfil"
+                >
+                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={IMAGE_RULES.acceptedAttribute}
+                  hidden
+                  onChange={handleAvatarUpload}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-semibold">{profile?.full_name || "Usuario"}</h2>
+                <p className="text-sm text-muted-foreground truncate">
+                  {profile?.email || "Sin correo"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Miembro desde {profile?.created_at ? new Date(profile.created_at).toLocaleDateString("es") : "—"}
+                </p>
+              </div>
+              <ThemeToggle className="hidden sm:inline-flex" />
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* SECCIÓN ZONA PELIGROSA */}
-      <div className="glass-panel" style={{ borderLeft: '4px solid var(--danger)', marginTop: '20px' }}>
-        <h3 style={{ color: 'var(--danger)' }}>Zona de Peligro Nuclear</h3>
-        <p style={{ fontSize: '0.9rem', color: '#94a3b8' }}>Cualquier acción aquí afectará radicalmente tu cuenta y métricas del inventario general.</p>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '15px' }}>
-            <button className="cta-button" onClick={handleDisableAccount} disabled={loading} style={{ justifyContent: 'center', background: 'var(--danger)', filter: 'opacity(0.8)' }}>
-              Pausar / Deshabilitar Cuenta
-            </button>
-            
-            <button className="cta-button" onClick={handleDeleteAccount} disabled={loading} style={{ justifyContent: 'center', background: 'transparent', border: '1px solid var(--danger)', color: 'var(--danger)' }}>
-              Eliminar Permanentemente ☠️
-            </button>
-        </div>
-      </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Información personal</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Edita tu nombre completo y preferencias de notificación.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="fullName">Nombre completo</Label>
+                <Input id="fullName" {...register("fullName")} />
+                {errors.fullName ? (
+                  <p className="text-xs text-destructive">{errors.fullName.message}</p>
+                ) : null}
+              </div>
 
-      {/* SALIDA DE SESIÓN REGULAR */}
-      <button 
-        onClick={() => supabase.auth.signOut()} 
-        style={{ width: '100%', background: 'none', border: 'none', color: '#94a3b8', padding: '20px', textDecoration: 'underline', cursor: 'pointer', marginTop: '10px' }}>
-        Solo deseo 'Cerrar Sesión' por ahora
-      </button>
+              <Separator />
 
-    </div>
-  );
-};
+              <div className="space-y-2">
+                <Label>Preferencias de alerta</Label>
+                <p className="text-xs text-muted-foreground">
+                  Selecciona con cuántos días de anticipación quieres recibir notificaciones.
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {ALERT_PREFERENCES.map((pref) => {
+                    const active = selectedAlerts.includes(pref.value)
+                    return (
+                      <button
+                        key={pref.value}
+                        type="button"
+                        onClick={() => toggleAlertDay(pref.value)}
+                        className={
+                          "rounded-full border px-4 py-1.5 text-sm font-medium transition-colors " +
+                          (active
+                            ? "bg-primary text-primary-foreground border-transparent"
+                            : "bg-background text-muted-foreground hover:bg-accent")
+                        }
+                      >
+                        {pref.label}
+                      </button>
+                    )
+                  })}
+                </div>
+                {errors.alertDays ? (
+                  <p className="text-xs text-destructive">{errors.alertDays.message}</p>
+                ) : null}
+              </div>
 
-export default Profile;
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="submit" disabled={!isDirty || isSubmitting}>
+                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Guardar cambios
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Notificaciones push</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Recibe alertas en tu dispositivo cuando un producto esté próximo a vencer.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start justify-between gap-4 rounded-lg border bg-secondary/40 p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                  <Bell className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Activar notificaciones</p>
+                  <p className="text-xs text-muted-foreground">
+                    Estado actual: <span className="font-medium">{push.permission}</span>
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={push.isSubscribed}
+                onCheckedChange={handlePushToggle}
+                disabled={push.loading}
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              El envío de notificaciones requiere que el backend esté configurado con claves
+              VAPID y el endpoint <code className="font-mono">POST /api/notifications/subscribe</code>.
+              Mientras tanto, esta opción se simula localmente.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-destructive/40">
+          <CardHeader>
+            <CardTitle className="text-base text-destructive">Zona peligrosa</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Las acciones siguientes no pueden deshacerse.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() => setConfirmSignOut(true)}
+            >
+              <LogOut className="h-4 w-4" />
+              Cerrar sesión
+            </Button>
+            <Button
+              variant="destructive"
+              className="w-full justify-start"
+              onClick={() => setConfirmDelete(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+              Eliminar cuenta permanentemente
+            </Button>
+          </CardContent>
+        </Card>
+      </PageContainer>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Eliminar cuenta"
+        description="Se eliminarán todos tus datos: productos, alertas y suscripciones. Esta acción no se puede deshacer."
+        confirmLabel="Sí, eliminar mi cuenta"
+        destructive
+        onConfirm={handleDeleteAccount}
+      />
+
+      <ConfirmDialog
+        open={confirmSignOut}
+        onOpenChange={setConfirmSignOut}
+        title="Cerrar sesión"
+        description="Volverás a la pantalla de inicio de sesión."
+        confirmLabel="Cerrar sesión"
+        onConfirm={handleSignOut}
+      />
+    </>
+  )
+}

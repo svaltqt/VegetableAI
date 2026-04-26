@@ -1,92 +1,156 @@
-import React, { useState, useEffect } from 'react';
+import { Link } from "react-router-dom"
+import { ScanLine, PencilLine, Bell, Sparkles, Plus, ChevronRight } from "lucide-react"
+import { Topbar } from "@/components/layout/Topbar"
+import { PageContainer } from "@/components/layout/PageContainer"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+import { StatCard } from "@/components/dashboard/StatCard"
+import { QuickAction } from "@/components/dashboard/QuickAction"
+import { StatusBadge } from "@/components/inventory/StatusBadge"
+import { useAuthStore } from "@/store/auth.store"
+import { useInventorySummary, useProducts } from "@/hooks/useProducts"
+import { useAlerts } from "@/hooks/useAlerts"
+import { ROUTES } from "@/config/routes"
+import { formatDateLocal, humanizeDays, daysUntil } from "@/utils/dates"
 
-const Dashboard = ({ session }) => {
-  const [inventory, setInventory] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function Dashboard() {
+  const profile = useAuthStore((s) => s.profile)
+  const { data: products = [], isLoading: loadingProducts } = useProducts()
+  const { data: summary, isLoading: loadingSummary } = useInventorySummary()
+  const { data: alerts = [] } = useAlerts()
 
-  // Solicitud al backend mediante NodeJS utilizando JWT JWT
-  useEffect(() => {
-    fetch('http://localhost:3000/api/inventory', {
-      headers: { 'Authorization': `Bearer ${session.access_token}` }
-    })
-      .then(res => res.json())
-      .then(data => {
-        setInventory(Array.isArray(data) ? data : []);
-        setLoading(false);
-      })
-      .catch(error => {
-        console.error('Fetch error:', error);
-        setLoading(false);
-      });
-  }, [session]);
+  const upcoming = products
+    .filter((p) => p.status !== "vigente")
+    .slice(0, 5)
 
-  const proximos = inventory.filter(i => i.status === 'Próximo a vencer');
-  const vigentes = inventory.filter(i => i.status === 'Vigente');
-  const vencidos = inventory.filter(i => i.status === 'Vencido');
+  const recentAlerts = alerts.slice(0, 3)
 
-  // Pequeño componente interno para listar bonitos los items
-  const renderList = (items) => {
-    if (items.length === 0) return <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '10px' }}>No hay registros aquí. ¡Todo en orden!</p>;
-    
-    return (
-      <ul style={{ listStyle: 'none', padding: 0, margin: '15px 0 0' }}>
-        {items.map(item => (
-          <li key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-            <div>
-              <span style={{ fontWeight: 500, display: 'block' }}>{item.name}</span>
-              <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>🧊 {item.category}</span>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <span style={{ fontSize: '0.85rem', display: 'block', opacity: 0.9 }}>{item.expiration_date}</span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: item.days_left < 0 ? 'var(--danger)' : item.days_left <= 3 ? 'var(--warning)' : 'var(--accent)' }}>
-                {item.days_left < 0 ? `Hace ${Math.abs(item.days_left)} días` : `En ${item.days_left} días`}
-              </span>
-            </div>
-          </li>
-        ))}
-      </ul>
-    );
-  };
+  const greetName = profile?.full_name?.split(" ")[0] || "Usuario"
 
   return (
-    <div style={{ paddingBottom: '40px' }}>
-      <h1 style={{ fontWeight: 700, marginBottom: '0.5rem' }}>Tu Alacena 🌿</h1>
-      <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>Resumen dinámico de vida de tus alimentos.</p>
-      
-      {loading ? (
-        <div style={{ color: 'var(--accent)', textAlign: 'center', marginTop: '30px' }}>Sincronizando con Supabase... 📡</div>
-      ) : (
-        <>
-          {/* SECCIÓN ÁMBAR: ALARMAS DE VENCIMIENTO INMINENTE */}
-          <div className="glass-panel" style={{ borderLeft: '4px solid var(--warning)' }}>
-            <h3 style={{ margin: '0 0 5px 0' }}>Próximos a Vencer</h3>
-            <p style={{ margin: 0, fontSize: '0.9rem', color: '#94a3b8' }}>
-              Tienes <strong>{proximos.length}</strong> producto(s) entrando a zona crítica.
-            </p>
-            {renderList(proximos)}
-          </div>
+    <>
+      <Topbar
+        title={`Bienvenido, ${greetName}`}
+        description="Aquí tienes el resumen de tu inventario."
+        action={
+          <Button asChild className="hidden md:inline-flex">
+            <Link to={ROUTES.SCANNER}>
+              <ScanLine className="h-4 w-4" />
+              Escanear producto
+            </Link>
+          </Button>
+        }
+      />
 
-          {/* SECCIÓN ROJA: CADUCADOS */}
-          <div className="glass-panel" style={{ borderLeft: '4px solid var(--danger)', marginTop: '20px' }}>
-            <h3 style={{ margin: '0 0 5px 0' }}>Vencidos (Danger)</h3>
-            <p style={{ margin: 0, fontSize: '0.9rem', color: '#94a3b8' }}>
-              <strong>{vencidos.length}</strong> producto(s) que superaron su fecha de caducidad histórica.
-            </p>
-            {renderList(vencidos)}
-          </div>
+      <PageContainer>
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          {loadingSummary ? (
+            Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)
+          ) : (
+            <>
+              <StatCard label="Total productos" value={summary?.total ?? 0} />
+              <StatCard label="Vigentes" value={summary?.vigente ?? 0} tone="fresh" />
+              <StatCard label="Próximos a vencer" value={summary?.proximo ?? 0} tone="warning" />
+              <StatCard label="Vencidos" value={summary?.vencido ?? 0} tone="danger" />
+            </>
+          )}
+        </section>
 
-          {/* SECCIÓN VERDE: SALUDABLES */}
-          <div className="glass-panel" style={{ borderLeft: '4px solid var(--accent)', marginTop: '20px' }}>
-            <h3 style={{ margin: '0 0 5px 0' }}>En Excelente Estado</h3>
-            <p style={{ margin: 0, fontSize: '0.9rem', color: '#94a3b8' }}>
-              <strong>{vigentes.length}</strong> producto(s) vigentes con largo tiempo de vida.
-            </p>
-            {renderList(vigentes)}
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
+        <section className="grid lg:grid-cols-3 gap-4">
+          <Card className="lg:col-span-2">
+            <CardHeader className="flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle className="text-base">Alertas recientes</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Productos próximos a vencer o ya vencidos.
+                </p>
+              </div>
+              <Button asChild variant="ghost" size="sm">
+                <Link to={ROUTES.INVENTORY}>
+                  Ver todo <ChevronRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {loadingProducts ? (
+                <Skeleton className="h-32 w-full rounded-lg" />
+              ) : upcoming.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">
+                  No hay productos en zona crítica. ¡Buen trabajo!
+                </p>
+              ) : (
+                upcoming.map((p) => {
+                  const days = daysUntil(p.expiration_date)
+                  const tone =
+                    p.status === "vencido"
+                      ? "border-status-danger/30 bg-status-danger-bg/60 text-status-danger"
+                      : p.status === "proximo"
+                      ? "border-status-warning/30 bg-status-warning-bg/60 text-status-warning"
+                      : "border-status-fresh/30 bg-status-fresh-bg/60 text-status-fresh"
+                  return (
+                    <div
+                      key={p.id}
+                      className={`rounded-xl border p-3.5 flex items-start justify-between gap-3 ${tone}`}
+                    >
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm truncate text-foreground">
+                          {p.name}
+                        </p>
+                        <p className="text-xs opacity-90">
+                          {humanizeDays(days)} — {formatDateLocal(p.expiration_date)}
+                        </p>
+                      </div>
+                      <StatusBadge status={p.status} className="bg-card/40" />
+                    </div>
+                  )
+                })
+              )}
+            </CardContent>
+          </Card>
 
-export default Dashboard;
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Acceso rápido</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Las acciones más frecuentes.
+              </p>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 gap-2">
+              <QuickAction
+                to={ROUTES.SCANNER}
+                icon={ScanLine}
+                title="Escanear fecha"
+                description="Usar cámara u OCR"
+              />
+              <QuickAction
+                to={ROUTES.PRODUCT_NEW}
+                icon={Plus}
+                title="Agregar manual"
+                description="Registrar producto"
+              />
+              <QuickAction
+                to={ROUTES.FOOD_STATUS}
+                icon={Sparkles}
+                title="Estado alimento"
+                description="Consultar con IA"
+              />
+              <QuickAction
+                to={ROUTES.INVENTORY}
+                icon={PencilLine}
+                title="Ver productos"
+                description="Lista completa"
+              />
+              <QuickAction
+                to={ROUTES.ALERTS}
+                icon={Bell}
+                title="Notificaciones"
+                description={`${recentAlerts.length} recientes`}
+              />
+            </CardContent>
+          </Card>
+        </section>
+      </PageContainer>
+    </>
+  )
+}
