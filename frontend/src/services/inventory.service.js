@@ -4,18 +4,18 @@ import { BACKEND_STATUS_MAP } from "@/config/constants"
 import { computeStatus } from "@/utils/status"
 
 /**
- * Esquema real del backend (tabla `inventory`):
+ * Backend `inventory` table schema:
  *   id, user_id, name, category, expiration_date, image_url, created_at
  *
  * Endpoints:
- *   GET    /api/inventory      → array con `status` ('Vigente' | 'Próximo a vencer' | 'Vencido') y `days_left`
+ *   GET    /api/inventory      → array with `status` ('Vigente' | 'Próximo a vencer' | 'Vencido') and `days_left`
  *   POST   /api/inventory      → array (Supabase .insert().select())
  *   PUT    /api/inventory/:id  → array
  *   DELETE /api/inventory/:id  → { success: true, deleted: [...] }
  *
- * No existe endpoint /summary; lo computamos en cliente desde la lista.
- * Los campos `quantity`, `notes` y `source` aún no están en la tabla del backend, por lo que
- * se filtran antes de enviar (cuando el backend los agregue dejarán de filtrarse).
+ * There is no /summary endpoint; it is computed client-side from the list.
+ * `quantity`, `notes` and `source` are not yet columns in the backend table,
+ * so they are stripped before sending.
  */
 
 const ALLOWED_FIELDS = ["name", "category", "expiration_date", "image_url"]
@@ -61,7 +61,7 @@ export const inventoryService = {
       return mockStore.getProduct(id)
     }
     const list = await this.list()
-    return list.find((p) => p.id === id) || null
+    return list.find((p) => String(p.id) === String(id)) || null
   },
 
   async create(payload) {

@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 import { useNavigate, useParams, Link } from "react-router-dom"
-import { useForm } from "react-hook-form"
+import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { ArrowLeft, Loader2 } from "lucide-react"
 import { Topbar } from "@/components/layout/Topbar"
@@ -37,9 +37,8 @@ export default function ProductForm() {
   const {
     register,
     handleSubmit,
-    setValue,
+    control,
     reset,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(productSchema),
@@ -54,9 +53,13 @@ export default function ProductForm() {
 
   useEffect(() => {
     if (isEdit && existing) {
+      const raw = (existing.category ?? "").toString().trim().toLowerCase()
+      const match = PRODUCT_CATEGORIES.find(
+        (c) => c.value.toLowerCase() === raw || c.label.toLowerCase() === raw
+      )
       reset({
         name: existing.name,
-        category: existing.category,
+        category: match ? match.value : "",
         expirationDate: formatDateISO(existing.expiration_date),
         quantity: existing.quantity ?? "",
         notes: existing.notes ?? "",
@@ -117,21 +120,24 @@ export default function ProductForm() {
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="category">Categoría</Label>
-                    <Select
-                      value={watch("category")}
-                      onValueChange={(v) => setValue("category", v, { shouldValidate: true })}
-                    >
-                      <SelectTrigger id="category">
-                        <SelectValue placeholder="Selecciona una categoría" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PRODUCT_CATEGORIES.map((c) => (
-                          <SelectItem key={c.value} value={c.value}>
-                            {c.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Controller
+                      name="category"
+                      control={control}
+                      render={({ field }) => (
+                        <Select value={field.value || ""} onValueChange={field.onChange}>
+                          <SelectTrigger id="category">
+                            <SelectValue placeholder="Selecciona una categoría" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PRODUCT_CATEGORIES.map((c) => (
+                              <SelectItem key={c.value} value={c.value}>
+                                {c.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
                     {errors.category ? (
                       <p className="text-xs text-destructive">{errors.category.message}</p>
                     ) : null}
