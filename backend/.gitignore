@@ -1,6 +1,5 @@
 node_modules/
 dist/
-dist-ssr/
 build/
 
 .env
@@ -14,8 +13,8 @@ yarn-debug.log*
 pnpm-debug.log*
 
 coverage/
-.vite/
-*.local
+*.lcov
+.nyc_output/
 
 .DS_Store
 Thumbs.db

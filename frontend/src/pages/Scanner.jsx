@@ -54,9 +54,13 @@ export default function Scanner() {
       return
     }
     setImageFile(file)
-    setImagePreview(URL.createObjectURL(file))
+    setImagePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev)
+      return URL.createObjectURL(file)
+    })
     setOcrResult(null)
     setEditableDate("")
+    ocrMutation.reset()
 
     try {
       const result = await ocrMutation.mutateAsync(file)

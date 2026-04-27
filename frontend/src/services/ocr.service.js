@@ -48,7 +48,7 @@ export const ocrService = {
     const form = new FormData()
     form.append("image", file)
     const { data } = await api.post("/ocr", form, {
-      headers: { "Content-Type": "multipart/form-data" },
+      headers: { "Content-Type": undefined },
       timeout: 30000,
     })
     return normalizeOcrResponse(data)
