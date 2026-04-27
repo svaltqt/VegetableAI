@@ -1,19 +1,45 @@
 import { differenceInCalendarDays, format, isValid, parse } from "date-fns"
 import { es } from "date-fns/locale"
 
-export function parseDateInput(value) {
-  if (!value) return null
-  if (value instanceof Date) return isValid(value) ? value : null
+const ISO_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})(?:T|$)/
 
-  const direct = new Date(value)
-  if (isValid(direct)) return direct
+/**
+ * Parses an ISO date string as a local date. Avoids the UTC shift caused by
+ * `new Date("YYYY-MM-DD")` being interpreted as UTC midnight in negative-offset
+ * timezones (e.g. UTC-5 turns 2026-04-23 into 2026-04-22).
+ *
+ * @param {string} value
+ * @returns {Date | null}
+ */
+function parseIsoDateAsLocal(value) {
+  const match = ISO_DATE_RE.exec(value)
+  if (!match) return null
+  const local = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+  return isValid(local) ? local : null
+}
 
+function parseWithFormats(value) {
   const formats = ["dd/MM/yyyy", "d/M/yyyy", "yyyy-MM-dd", "MM/yyyy", "M/yyyy"]
   for (const fmt of formats) {
     const parsed = parse(value, fmt, new Date())
     if (isValid(parsed)) return parsed
   }
   return null
+}
+
+export function parseDateInput(value) {
+  if (!value) return null
+  if (value instanceof Date) return isValid(value) ? value : null
+
+  if (typeof value === "string") {
+    const local = parseIsoDateAsLocal(value)
+    if (local) return local
+  }
+
+  const direct = new Date(value)
+  if (isValid(direct)) return direct
+
+  return parseWithFormats(value)
 }
 
 export function formatDateLocal(value, pattern = "dd/MM/yyyy") {
