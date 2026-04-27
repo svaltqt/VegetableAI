@@ -59,7 +59,12 @@ VegetableAI/
 ## 🚀 Guía Exhaustiva de Instalación Local
 
 ### 1. Requisitos Previos Obligatorios
-- [Node.js](https://nodejs.org/es/) versión v16+.
+
+- **Node.js**: `>=20.11 <21` o `>=22 LTS` (recomendado **Node 20 LTS** o **Node 22 LTS**).
+  - Vite 5 requiere `^18.0.0 || ^20.0.0 || >=22.0.0` (no soporta 19, 21, 23).
+  - ESLint 9 requiere `^18.18.0 || ^20.9.0 || >=21.1.0`.
+  - Verifica tu versión con `node -v`. Si necesitas cambiarla, usa [nvm](https://github.com/nvm-sh/nvm) (Mac/Linux) o [nvm-windows](https://github.com/coreybutler/nvm-windows).
+- **npm**: 10.x o superior (viene con Node 20+).
 - Una cuenta abierta en [Supabase](https://supabase.com/) (Free Tier).
 
 ### 2. Configurar la Nube de Base de Datos
@@ -68,37 +73,60 @@ VegetableAI/
 3. Se generarán automáticamente tus tablas de perfiles, los disparadores (triggers) de creación automática y todo el escudo hiper-seguro de **Políticas RLS**.
 
 ### 3. Encender el "Cerebro" (Backend)
-En una consola, sitúate en la raíz del proyecto y ve a backend:
+
 ```bash
 cd backend
 npm install
 ```
-Añade o crea un archivo `.env` incluyendo tu URL global y tu Llave Administradora Roles (*Service Role Key* crucial para purgados o reestructuraciones):
+
+Crea un archivo `backend/.env` con tu URL global y tu *Service Role Key*:
+
 ```env
 SUPABASE_URL=YOUR_SUPABASE_PROJECT_URL
 SUPABASE_SERVICE_ROLE_KEY=YOUR_SUPABASE_SERVICE_ROLE_KEY
 PORT=3000
 ```
-Arranca el servidor Node:
+
+Arranca el servidor:
+
 ```bash
-npm start
+npm run dev    # modo watch (recarga automática)
+# o
+npm start      # modo producción
 ```
 
+> El backend quedará escuchando en `http://localhost:3000`.
+
 ### 4. Iluminar la "Cara" (Frontend)
-Abre otra pestaña nueva en tu terminal y dirígete al frontend:
+
+En otra terminal:
+
 ```bash
 cd frontend
 npm install
 ```
-Acá generarás un archivo diferente llamado `.env.local` empleando estrictamente tu Llave Anónima y segura (*Publishable / Anon*):
+
+Crea `frontend/.env` (o `frontend/.env.local`) con tu Llave Anónima:
+
 ```env
 VITE_SUPABASE_URL=YOUR_SUPABASE_PROJECT_URL
 VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+VITE_API_BASE_URL=http://localhost:3000/api
 ```
-Ejecuta la capa gráfica. (Se ha dejado el flag `--host` habilitado por defecto para que conecte tu PWA localmente con cualquier teléfono de la misma red WiFi).
+
+Ejecuta la capa gráfica (el flag `--host` ya viene en el script `dev` para que la PWA sea accesible desde cualquier dispositivo en tu red WiFi):
+
 ```bash
-npm run dev --host
+npm run dev
 ```
+
+> El frontend quedará en `http://localhost:5173`.
+
+### 5. Solución de problemas comunes
+
+- **`ERESOLVE` al hacer `npm install` en frontend** → asegúrate de estar en Node 20 LTS o superior. Si persiste, `npm install --legacy-peer-deps`.
+- **OCR se queda procesando para siempre** → Tesseract descarga el modelo de español la primera vez (~10 MB). Espera 1-2 min en el primer escaneo.
+- **`401 Unauthorized` en `/api/inventory`** → tu sesión expiró, vuelve a iniciar sesión.
 
 ---
 

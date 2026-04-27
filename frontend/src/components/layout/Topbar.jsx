@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
 import { useAlerts } from "@/hooks/useAlerts"
-import { useAuthStore } from "@/store/auth.store"
+import { useProfile } from "@/hooks/useProfile"
 import { getInitials } from "@/utils/initials"
 import { ROUTES } from "@/config/routes"
 import { cn } from "@/lib/utils"
 
 export function Topbar({ title, description, action, className }) {
-  const profile = useAuthStore((s) => s.profile)
+  const { data: profile } = useProfile()
   const { data: alerts = [] } = useAlerts()
   const pending = alerts.filter((a) => a.status === "pendiente").length
 

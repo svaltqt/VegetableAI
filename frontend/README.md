@@ -83,16 +83,30 @@ VITE_USE_MOCKS=true
 
 ---
 
-## Comandos
+## Requisitos
+
+- **Node.js**: `>=20.11 <21` o `>=22 LTS` (probado con Node 20.x y 22.x).
+  - Vite 5 no soporta Node 19, 21, ni 23.
+  - ESLint 9 requiere Node 18.18+ / 20.9+ / 21.1+.
+- **npm**: 10.x o superior.
+
+```bash
+node -v   # debe ser 20.x o 22.x
+npm -v    # debe ser 10.x+
+```
+
+## Instalación y comandos
 
 ```bash
 cd frontend
-npm install
+npm install      # si falla por peer deps, agrega --legacy-peer-deps
 npm run dev      # arranca Vite con --host (PWA accesible desde el móvil)
 npm run build    # compila a /dist
 npm run preview  # sirve /dist
 npm run lint
 ```
+
+> En la primera ejecución copia `.env.example` a `.env` (o `.env.local`) y completa las variables.
 
 ---
 

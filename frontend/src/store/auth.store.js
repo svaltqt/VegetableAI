@@ -1,76 +1,57 @@
 import { create } from "zustand"
 import { authService } from "@/services/auth.service"
-import { usersService } from "@/services/users.service"
 
-export const useAuthStore = create((set, get) => ({
+// Module-level guards prevent React StrictMode and remounts from triggering
+// duplicate session bootstraps in development.
+let initializePromise = null
+let authSubscriptionAttached = false
+
+export const useAuthStore = create((set) => ({
   session: null,
-  profile: null,
   status: "idle",
 
-  initialize: async () => {
-    set({ status: "loading" })
-    try {
-      const session = await authService.getSession()
-      let profile = null
-      if (session) {
-        try {
-          profile = await usersService.me()
-        } catch {
-          profile = null
-        }
-      }
-      set({ session, profile, status: "ready" })
-    } catch {
-      set({ session: null, profile: null, status: "ready" })
-    }
-
-    authService.onAuthStateChange(async (session) => {
-      if (!session) {
-        set({ session: null, profile: null })
-        return
-      }
-      let profile = null
+  initialize: () => {
+    if (initializePromise) return initializePromise
+    initializePromise = (async () => {
+      set({ status: "loading" })
       try {
-        profile = await usersService.me()
-      } catch {}
-      set({ session, profile })
-    })
+        const session = await authService.getSession()
+        set({ session, status: "ready" })
+      } catch {
+        set({ session: null, status: "ready" })
+      }
+
+      if (authSubscriptionAttached) return
+      authSubscriptionAttached = true
+      authService.onAuthStateChange((session) => {
+        set({ session: session ?? null })
+      })
+    })()
+    return initializePromise
   },
 
   signIn: async (credentials) => {
     const session = await authService.signIn(credentials)
-    let profile = null
-    try {
-      profile = await usersService.me()
-    } catch {}
-    set({ session, profile })
+    set({ session })
     return session
   },
 
   signUp: async (payload) => {
     const result = await authService.signUp(payload)
-    if (result.session) {
-      let profile = null
-      try {
-        profile = await usersService.me()
-      } catch {}
-      set({ session: result.session, profile })
-    }
+    if (result.session) set({ session: result.session })
     return result
   },
 
   signOut: async () => {
-    await authService.signOut()
-    set({ session: null, profile: null })
+    // Clear local state first so the UI never gets stuck if the remote
+    // signOut hangs or rejects (network issue, expired token, etc.).
+    set({ session: null })
+    try {
+      await authService.signOut()
+    } catch {
+      // Ignored on purpose: local session is already cleared.
+    }
   },
-
-  refreshProfile: async () => {
-    const profile = await usersService.me()
-    set({ profile })
-    return profile
-  },
-
-  setProfile: (profile) => set({ profile }),
 }))
 
 export const selectIsAuthenticated = (state) => Boolean(state.session)

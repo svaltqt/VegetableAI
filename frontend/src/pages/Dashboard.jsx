@@ -8,14 +8,14 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { StatCard } from "@/components/dashboard/StatCard"
 import { QuickAction } from "@/components/dashboard/QuickAction"
 import { StatusBadge } from "@/components/inventory/StatusBadge"
-import { useAuthStore } from "@/store/auth.store"
+import { useProfile } from "@/hooks/useProfile"
 import { useInventorySummary, useProducts } from "@/hooks/useProducts"
 import { useAlerts } from "@/hooks/useAlerts"
 import { ROUTES } from "@/config/routes"
 import { formatDateLocal, humanizeDays, daysUntil } from "@/utils/dates"
 
 export default function Dashboard() {
-  const profile = useAuthStore((s) => s.profile)
+  const { data: profile } = useProfile()
   const { data: products = [], isLoading: loadingProducts } = useProducts()
   const { data: summary, isLoading: loadingSummary } = useInventorySummary()
   const { data: alerts = [] } = useAlerts()

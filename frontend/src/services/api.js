@@ -14,7 +14,7 @@ api.interceptors.request.use(async (config) => {
     const token = data?.session?.access_token
     if (token) config.headers.Authorization = `Bearer ${token}`
   } catch {
-    // sesión no disponible: la solicitud sale sin Authorization
+    // No active session: request goes out without Authorization header.
   }
   return config
 })

@@ -32,8 +32,8 @@ function App() {
   }, [initialize])
 
   return (
-    <ThemeProvider defaultTheme="light">
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="light">
         <Router>
           <Routes>
             <Route element={<PublicOnlyRoute />}>
@@ -60,8 +60,8 @@ function App() {
           </Routes>
         </Router>
         <Toaster position="top-right" richColors closeButton expand />
-      </QueryClientProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   )
 }
 

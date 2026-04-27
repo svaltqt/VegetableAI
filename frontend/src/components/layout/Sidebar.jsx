@@ -3,7 +3,7 @@ import { LogOut } from "lucide-react"
 import { Logo } from "@/components/brand/Logo"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useAuthStore } from "@/store/auth.store"
+import { useProfile, useSignOut } from "@/hooks/useProfile"
 import { getInitials } from "@/utils/initials"
 import { ROUTES } from "@/config/routes"
 import { cn } from "@/lib/utils"
@@ -11,12 +11,15 @@ import { NAV_ITEMS } from "./NavItems"
 
 export function Sidebar() {
   const navigate = useNavigate()
-  const profile = useAuthStore((s) => s.profile)
-  const signOut = useAuthStore((s) => s.signOut)
+  const { data: profile } = useProfile()
+  const signOut = useSignOut()
 
   const handleSignOut = async () => {
-    await signOut()
-    navigate(ROUTES.LOGIN, { replace: true })
+    try {
+      await signOut()
+    } finally {
+      navigate(ROUTES.LOGIN, { replace: true })
+    }
   }
 
   return (

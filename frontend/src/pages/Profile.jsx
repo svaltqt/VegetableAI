@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Camera, LogOut, Loader2, Trash2, Bell } from "lucide-react"
+import { LogOut, Loader2, Trash2, Bell } from "lucide-react"
 import { Topbar } from "@/components/layout/Topbar"
 import { PageContainer } from "@/components/layout/PageContainer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,29 +14,25 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import { ConfirmDialog } from "@/components/common/ConfirmDialog"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
-import { useAuthStore } from "@/store/auth.store"
+import { useProfile, useUpdateProfile, useSignOut } from "@/hooks/useProfile"
 import { usePushStore } from "@/store/push.store"
 import { useToast } from "@/hooks/useToast"
 import { usersService } from "@/services/users.service"
 import { profileSchema } from "@/utils/validation"
-import { ALERT_PREFERENCES, IMAGE_RULES } from "@/config/constants"
+import { ALERT_PREFERENCES } from "@/config/constants"
 import { ROUTES } from "@/config/routes"
 import { getInitials } from "@/utils/initials"
-import { validateImageFile } from "@/utils/images"
 
 export default function Profile() {
   const navigate = useNavigate()
   const toast = useToast()
-  const profile = useAuthStore((s) => s.profile)
-  const refreshProfile = useAuthStore((s) => s.refreshProfile)
-  const signOut = useAuthStore((s) => s.signOut)
-  const setProfile = useAuthStore((s) => s.setProfile)
+  const { data: profile } = useProfile()
+  const updateProfile = useUpdateProfile()
+  const signOut = useSignOut()
 
   const push = usePushStore()
-  const fileInputRef = useRef(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
-  const [uploading, setUploading] = useState(false)
 
   const {
     register,
@@ -73,35 +69,13 @@ export default function Profile() {
 
   const onSubmit = async (data) => {
     try {
-      const updated = await usersService.update({
+      await updateProfile.mutateAsync({
         full_name: data.fullName,
         alert_days: data.alertDays,
       })
-      setProfile(updated)
       toast.success("Perfil actualizado.")
     } catch (err) {
       toast.error(err.message || "No fue posible guardar los cambios.")
-    }
-  }
-
-  const handleAvatarUpload = async (event) => {
-    const file = event.target.files?.[0]
-    event.target.value = ""
-    if (!file) return
-    const validation = validateImageFile(file)
-    if (!validation.valid) {
-      toast.error(validation.message)
-      return
-    }
-    setUploading(true)
-    try {
-      const updated = await usersService.uploadAvatar(file)
-      setProfile(updated)
-      toast.success("Foto de perfil actualizada.")
-    } catch (err) {
-      toast.error(err.message || "No fue posible subir la imagen.")
-    } finally {
-      setUploading(false)
     }
   }
 
@@ -117,8 +91,11 @@ export default function Profile() {
   }
 
   const handleSignOut = async () => {
-    await signOut()
-    navigate(ROUTES.LOGIN, { replace: true })
+    try {
+      await signOut()
+    } finally {
+      navigate(ROUTES.LOGIN, { replace: true })
+    }
   }
 
   const handlePushToggle = async (checked) => {
@@ -146,31 +123,14 @@ export default function Profile() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="relative">
-                <Avatar className="h-20 w-20 ring-4 ring-background">
-                  {profile?.avatar_url ? (
-                    <AvatarImage src={profile.avatar_url} alt={profile?.full_name} />
-                  ) : null}
-                  <AvatarFallback className="text-xl">
-                    {getInitials(profile?.full_name)}
-                  </AvatarFallback>
-                </Avatar>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary/90 transition"
-                  aria-label="Cambiar foto de perfil"
-                >
-                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept={IMAGE_RULES.acceptedAttribute}
-                  hidden
-                  onChange={handleAvatarUpload}
-                />
-              </div>
+              <Avatar className="h-20 w-20 ring-4 ring-background">
+                {profile?.avatar_url ? (
+                  <AvatarImage src={profile.avatar_url} alt={profile?.full_name} />
+                ) : null}
+                <AvatarFallback className="text-xl">
+                  {getInitials(profile?.full_name)}
+                </AvatarFallback>
+              </Avatar>
               <div className="min-w-0 flex-1">
                 <h2 className="text-lg font-semibold">{profile?.full_name || "Usuario"}</h2>
                 <p className="text-sm text-muted-foreground truncate">
