@@ -4,13 +4,17 @@ import { extractDateFromText, formatDateISO, parseDateInput } from "@/utils/date
 import { validateImageFile } from "@/utils/images"
 
 /**
- * Esquema real del backend (POST /api/ocr, multipart/form-data, campo "image"):
+ * Normalizes the backend OCR response into a shape consumable by the form.
+ *
+ * Backend payload (POST /api/ocr, multipart/form-data, field "image"):
  *   { success: true, textExtracted: string, detectedDate: string | null }
  *
- * `detectedDate` es el match crudo de la RegEx (ej. "12/04/2026" o "11 OCT 2017").
- * Aquí lo parseamos a ISO `yyyy-MM-dd` para alimentar el `<input type="date">`.
+ * `detectedDate` is the raw RegEx match (e.g. "12/04/2026" or "11 OCT 2017").
+ * It is parsed into ISO `yyyy-MM-dd` so it can feed an `<input type="date">`.
+ *
+ * @param {object} raw
+ * @returns {{ success: boolean, raw_text: string, expiration_date: string | null, confidence: number }}
  */
-
 function normalizeOcrResponse(raw) {
   const text = raw?.textExtracted || raw?.raw_text || ""
   const rawDate = raw?.detectedDate || raw?.expiration_date || null
