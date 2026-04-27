@@ -141,5 +141,7 @@ npm run dev
 | **DELETE**| `/api/users/me` | Destruye identidad universal por medio del admin. | Auth Token |
 
 ---
-
+Account:
+Supabase pass : Papitasfritas#2026
+Database password: Papitasfritas#2026
 *Cosecha datos organizados, no desperdicio de cocina.* 🌱
