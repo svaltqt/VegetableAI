@@ -2,6 +2,9 @@
 # Dependencies
 node_modules/
 
+backend/node_modules/
+frontend/node_modules/
+
 # Logs
 *.log
 
@@ -29,9 +32,10 @@ out/
 .nuxt
 
 # dotenv environment variable files
-.env
 .env.local
 .env.*.local
+backend/.env
+frontend/.env.local
 
 # npm cache directory
 .npm
