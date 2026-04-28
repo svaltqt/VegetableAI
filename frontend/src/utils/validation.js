@@ -27,6 +27,31 @@ export const forgotPasswordSchema = z.object({
   email: z.string().email("Correo electrónico inválido"),
 })
 
+export const resetPasswordSchema = z
+  .object({
+    password: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Las contraseñas no coinciden",
+  })
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Ingresa tu contraseña actual"),
+    password: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Las contraseñas no coinciden",
+  })
+  .refine((data) => data.currentPassword !== data.password, {
+    path: ["password"],
+    message: "La nueva contraseña debe ser distinta de la actual",
+  })
+
 export const productSchema = z.object({
   name: z.string().min(2, "Nombre demasiado corto").max(120, "Máximo 120 caracteres"),
   category: z.string().min(1, "Selecciona una categoría"),

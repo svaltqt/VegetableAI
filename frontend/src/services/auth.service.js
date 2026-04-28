@@ -112,8 +112,51 @@ export const authService = {
       return { ok: true }
     }
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/forgot-password`,
+      redirectTo: `${window.location.origin}/reset-password`,
     })
+    if (error) throw translateAuthError(error)
+    return { ok: true }
+  },
+
+  /**
+   * Sets a new password for the user that arrived via the recovery email.
+   * Supabase auto-creates a recovery session from the URL hash, so this just
+   * needs to call updateUser; we then sign the user out so they re-login
+   * with the new credentials.
+   */
+  async resetPassword(newPassword) {
+    if (!isSupabaseConfigured) {
+      await delay()
+      return { ok: true }
+    }
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) throw translateAuthError(error)
+    await supabase.auth.signOut()
+    return { ok: true }
+  },
+
+  /**
+   * Changes the password for the currently authenticated user. Re-authenticates
+   * with the current password first to enforce ownership, then updates.
+   */
+  async changePassword({ currentPassword, newPassword }) {
+    if (!isSupabaseConfigured) {
+      await delay()
+      return { ok: true }
+    }
+    const { data: sessionData } = await supabase.auth.getSession()
+    const email = sessionData?.session?.user?.email
+    if (!email) throw new Error("Sesión no válida. Vuelve a iniciar sesión.")
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password: currentPassword,
+    })
+    if (signInError) {
+      throw new Error("La contraseña actual es incorrecta.")
+    }
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
     if (error) throw translateAuthError(error)
     return { ok: true }
   },

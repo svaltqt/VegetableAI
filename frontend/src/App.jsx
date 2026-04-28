@@ -11,6 +11,7 @@ import { ROUTES } from "@/config/routes"
 import Login from "@/pages/Login"
 import Register from "@/pages/Register"
 import ForgotPassword from "@/pages/ForgotPassword"
+import ResetPassword from "@/pages/ResetPassword"
 import Dashboard from "@/pages/Dashboard"
 import Inventory from "@/pages/Inventory"
 import ProductForm from "@/pages/ProductForm"
@@ -41,6 +42,8 @@ function App() {
               <Route path={ROUTES.REGISTER} element={<Register />} />
               <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
             </Route>
+
+            <Route path={ROUTES.RESET_PASSWORD} element={<ResetPassword />} />
 
             <Route element={<ProtectedRoute />}>
               <Route element={<AppShell />}>

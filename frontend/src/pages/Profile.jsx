@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import { ConfirmDialog } from "@/components/common/ConfirmDialog"
+import { ChangePasswordCard } from "@/components/profile/ChangePasswordCard"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
 import { useProfile, useUpdateProfile, useSignOut } from "@/hooks/useProfile"
 import { usePushStore } from "@/store/push.store"
@@ -237,6 +238,8 @@ export default function Profile() {
             </p>
           </CardContent>
         </Card>
+
+        <ChangePasswordCard />
 
         <Card className="border-destructive/40">
           <CardHeader>
