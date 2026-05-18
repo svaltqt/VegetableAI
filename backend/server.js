@@ -6,6 +6,10 @@ import dotenv from 'dotenv';
 import ocrRoutes from './src/routes/ocr.routes.js';
 import inventoryRoutes from './src/routes/inventory.routes.js';
 import usersRoutes from './src/routes/users.routes.js';
+import alertsRoutes from './src/routes/alerts.routes.js';
+
+// Importación de Cron Jobs
+import { initAlertsCron } from './src/jobs/alerts.job.js';
 
 dotenv.config();
 
@@ -17,8 +21,12 @@ app.use(express.json());
 app.use('/api/ocr', ocrRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/alerts', alertsRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 VegetableAI App viva en puerto ${PORT}`);
+  
+  // Iniciar Cron Jobs
+  initAlertsCron();
 });

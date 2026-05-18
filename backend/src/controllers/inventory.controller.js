@@ -5,7 +5,7 @@ export const getInventory = async (req, res) => {
     const processedInventory = await fetchAndProcessInventory(req.user.id);
     res.json(processedInventory);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -14,7 +14,7 @@ export const postProduct = async (req, res) => {
     const newProduct = await createProduct(req.user.id, req.body);
     res.status(201).json(newProduct);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -23,7 +23,7 @@ export const putProduct = async (req, res) => {
     const updatedProduct = await editProduct(req.user.id, req.params.id, req.body);
     res.json(updatedProduct);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -32,6 +32,6 @@ export const deleteProduct = async (req, res) => {
     const deletedProduct = await removeProduct(req.user.id, req.params.id);
     res.json({ success: true, deleted: deletedProduct });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };

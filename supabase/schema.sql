@@ -25,11 +25,12 @@ CREATE TABLE public.inventory (
 -- Tabla: historial de notificaciones (Alertas)
 CREATE TABLE public.alerts (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  product_id UUID REFERENCES public.inventory(id) ON DELETE CASCADE,
   message TEXT NOT NULL,
-  type TEXT CHECK (type IN ('expiration', 'system', 'info')) DEFAULT 'expiration',
-  read BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  type TEXT DEFAULT 'vencimiento_proximo',
+  status TEXT CHECK (status IN ('pendiente', 'vista', 'descartada')) DEFAULT 'pendiente',
+  generated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Políticas RLS (Row Level Security) - Seguridad en Supabase

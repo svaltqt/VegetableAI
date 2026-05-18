@@ -62,7 +62,7 @@ function App() {
             <Route path="*" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
           </Routes>
         </Router>
-        <Toaster position="top-right" richColors closeButton expand />
+        <Toaster position="bottom-right" richColors closeButton expand />
       </ThemeProvider>
     </QueryClientProvider>
   )

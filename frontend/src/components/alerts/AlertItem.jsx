@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 
 const TYPE_STYLES = {
   vencido: "bg-status-danger-bg text-status-danger border-status-danger/30",
+  vencimiento_proximo: "bg-status-warning-bg text-status-warning border-status-warning/30",
   proximo_1: "bg-status-warning-bg text-status-warning border-status-warning/30",
   proximo_2: "bg-status-warning-bg text-status-warning border-status-warning/30",
   proximo_3: "bg-status-warning-bg text-status-warning border-status-warning/30",
