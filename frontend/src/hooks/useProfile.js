@@ -33,6 +33,16 @@ export function useUpdateProfile() {
   })
 }
 
+export function useUploadAvatar() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (file) => usersService.uploadAvatar(file),
+    onSuccess: (updated) => {
+      qc.setQueriesData({ queryKey: PROFILE_KEY }, updated)
+    },
+  })
+}
+
 /** Removes any cached profile data. Used during sign-out. */
 export function clearProfileCache(qc) {
   qc.removeQueries({ queryKey: PROFILE_KEY })

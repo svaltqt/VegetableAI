@@ -93,27 +93,21 @@ export const usersService = {
       })
       return mockStore.setUser({ avatar_url: url })
     }
+    
     const sessionUser = await getSessionUser()
     if (!sessionUser) throw new Error("Sesión no válida. Vuelve a iniciar sesión.")
 
-    const ext = (file.name?.split(".").pop() || "jpg").toLowerCase()
-    const path = `${sessionUser.id}/avatar-${Date.now()}.${ext}`
+    const formData = new FormData()
+    formData.append("avatar", file)
 
-    const { error: uploadError } = await supabase.storage
-      .from(STORAGE_BUCKETS.AVATARS)
-      .upload(path, file, { upsert: true, cacheControl: "3600", contentType: file.type })
+    const { data } = await api.post("/users/me/avatar", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data"
+      }
+    })
 
-    if (uploadError) {
-      throw new Error(
-        "No fue posible subir la imagen al almacenamiento. Verifica que el bucket 'avatars' exista y tenga políticas de escritura para usuarios autenticados."
-      )
-    }
-
-    const { data: publicData } = supabase.storage.from(STORAGE_BUCKETS.AVATARS).getPublicUrl(path)
-    const avatarUrl = publicData?.publicUrl
-    if (!avatarUrl) throw new Error("La imagen se subió pero no se pudo obtener su URL pública.")
-
-    return this.update({ avatar_url: avatarUrl })
+    const profileRow = data?.profile || data
+    return mapFromBackend(profileRow, sessionUser)
   },
 
   async remove() {

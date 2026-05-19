@@ -15,7 +15,7 @@ import { Separator } from "@/components/ui/separator"
 import { ConfirmDialog } from "@/components/common/ConfirmDialog"
 import { ChangePasswordCard } from "@/components/profile/ChangePasswordCard"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
-import { useProfile, useUpdateProfile, useSignOut } from "@/hooks/useProfile"
+import { useProfile, useUpdateProfile, useSignOut, useUploadAvatar } from "@/hooks/useProfile"
 import { usePushStore } from "@/store/push.store"
 import { useToast } from "@/hooks/useToast"
 import { usersService } from "@/services/users.service"
@@ -23,6 +23,7 @@ import { profileSchema } from "@/utils/validation"
 import { ALERT_PREFERENCES } from "@/config/constants"
 import { ROUTES } from "@/config/routes"
 import { getInitials } from "@/utils/initials"
+import { cn } from "@/lib/utils"
 
 export default function Profile() {
   const navigate = useNavigate()
@@ -30,10 +31,61 @@ export default function Profile() {
   const { data: profile } = useProfile()
   const updateProfile = useUpdateProfile()
   const signOut = useSignOut()
+  const uploadAvatar = useUploadAvatar()
 
   const push = usePushStore()
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
+  const [dragActive, setDragActive] = useState(false)
+
+  const handleFile = async (file) => {
+    if (!file) return
+
+    // Validar tipo de archivo
+    if (!file.type.startsWith("image/")) {
+      toast.error("Por favor, sube únicamente archivos de tipo imagen (PNG, JPG, WEBP).")
+      return
+    }
+
+    // Validar peso de la imagen (15MB)
+    const MAX_SIZE = 15 * 1024 * 1024; // 15MB
+    if (file.size > MAX_SIZE) {
+      toast.error("La imagen supera el peso máximo permitido de 15 megas.")
+      return
+    }
+
+    try {
+      await uploadAvatar.mutateAsync(file)
+      toast.success("Foto de perfil actualizada correctamente.")
+    } catch (err) {
+      toast.error(err.message || "Error al subir la imagen de perfil.")
+    }
+  }
+
+  const handleDrag = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true)
+    } else if (e.type === "dragleave") {
+      setDragActive(false)
+    }
+  }
+
+  const handleDrop = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      await handleFile(e.dataTransfer.files[0])
+    }
+  }
+
+  const handleFileChange = async (e) => {
+    if (e.target.files && e.target.files[0]) {
+      await handleFile(e.target.files[0])
+    }
+  }
 
   const {
     register,
@@ -124,14 +176,51 @@ export default function Profile() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <Avatar className="h-20 w-20 ring-4 ring-background">
-                {profile?.avatar_url ? (
-                  <AvatarImage src={profile.avatar_url} alt={profile?.full_name} />
-                ) : null}
-                <AvatarFallback className="text-xl">
-                  {getInitials(profile?.full_name)}
-                </AvatarFallback>
-              </Avatar>
+              <div 
+                className="relative group cursor-pointer"
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+                onClick={() => document.getElementById("avatar-upload-input").click()}
+              >
+                <Avatar className={cn(
+                  "h-20 w-20 ring-4 ring-background transition-all duration-200",
+                  dragActive ? "scale-105 ring-primary/50" : "group-hover:scale-105"
+                )}>
+                  {profile?.avatar_url ? (
+                    <AvatarImage src={profile.avatar_url} alt={profile?.full_name} />
+                  ) : null}
+                  <AvatarFallback className="text-xl">
+                    {getInitials(profile?.full_name)}
+                  </AvatarFallback>
+                </Avatar>
+                
+                {/* Overlay de carga / hover con texto descriptivo */}
+                <div className={cn(
+                  "absolute inset-0 rounded-full flex flex-col items-center justify-center bg-black/60 text-white opacity-0 transition-opacity duration-200 text-[10px] text-center font-medium",
+                  dragActive ? "opacity-100" : "group-hover:opacity-100",
+                  uploadAvatar.isPending && "opacity-100 pointer-events-none"
+                )}>
+                  {uploadAvatar.isPending ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <>
+                      <span className="px-2">Arrastra o clic para subir</span>
+                      <span className="text-[8px] opacity-70 mt-0.5">Máx 15MB</span>
+                    </>
+                  )}
+                </div>
+                
+                <input
+                  id="avatar-upload-input"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                  disabled={uploadAvatar.isPending}
+                />
+              </div>
               <div className="min-w-0 flex-1">
                 <h2 className="text-lg font-semibold">{profile?.full_name || "Usuario"}</h2>
                 <p className="text-sm text-muted-foreground truncate">

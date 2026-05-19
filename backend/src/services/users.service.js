@@ -29,3 +29,33 @@ export const deleteUserProfile = async (userId) => {
   // Ignoramos errores de eliminación del public en caso de que la cascada fue veloz
   return data;
 };
+
+export const uploadUserAvatar = async (userId, file) => {
+  const ext = (file.originalname?.split('.').pop() || 'jpg').toLowerCase();
+  const filePath = `${userId}/avatar-${Date.now()}.${ext}`;
+
+  // Subir el buffer de multer a Supabase Storage
+  const { error: uploadError } = await supabase.storage
+    .from('avatars')
+    .upload(filePath, file.buffer, {
+      contentType: file.mimetype,
+      upsert: true
+    });
+
+  if (uploadError) {
+    throw new Error(`Error en Supabase Storage: ${uploadError.message}`);
+  }
+
+  // Obtener URL pública
+  const { data: publicData } = supabase.storage
+    .from('avatars')
+    .getPublicUrl(filePath);
+
+  const avatarUrl = publicData?.publicUrl;
+  if (!avatarUrl) {
+    throw new Error('No se pudo obtener la URL pública de la imagen subida.');
+  }
+
+  // Actualizar avatar_url en la tabla profiles
+  return await updateUserProfile(userId, { avatar_url: avatarUrl });
+};
