@@ -76,6 +76,15 @@ export const generateAlerts = async () => {
             type: alertType,
             status: 'pendiente'
           }]);
+          
+          // Enviar Web Push Notification (no bloquea el loop si falla)
+          import('./notifications.service.js').then(({ sendNotificationToUser }) => {
+            sendNotificationToUser(item.user_id, {
+              title: 'VegetableAI - Alerta de Vencimiento',
+              body: message,
+              url: '/alerts'
+            });
+          }).catch(err => console.error('Error importando notificaciones:', err));
         }
       }
     }

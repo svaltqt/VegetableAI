@@ -16,13 +16,12 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       includeAssets: ['favicon.svg', 'icons/icon.svg', 'icons/maskable.svg'],
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
-        navigateFallback: 'index.html',
-      },
       manifest: {
         name: 'VegetableAI',
         short_name: 'VegetableAI',
@@ -46,15 +45,21 @@ export default defineConfig({
             short_name: 'Escanear',
             description: 'Captura una fecha de vencimiento con OCR.',
             url: '/scanner',
+            path: '/scanner'
           },
           {
             name: 'Ver inventario',
             short_name: 'Inventario',
             description: 'Consulta tu lista de alimentos.',
             url: '/inventory',
+            path: '/inventory'
           },
         ],
       },
+      devOptions: {
+        enabled: true,
+        type: 'module'
+      }
     }),
   ],
 })
