@@ -166,7 +166,7 @@ Authorization: Bearer <token de la sesion QA>
 
 Respuesta esperada: HTTP 200 con productos del usuario QA.
 
-## Compilacion y lint
+## Compilacion
 
 Build frontend: PASSED.
 
@@ -176,14 +176,6 @@ vite v5.4.21 building for production...
 OK built
 ```
 
-Lint frontend: FAIL conocido.
-
-```text
-TypeError: Cannot read properties of undefined (reading 'recommended')
-at frontend/eslint.config.js:13:31
-```
-
-El lint falla cargando la configuracion de ESLint antes de analizar el codigo fuente.
 
 ## Observaciones
 
