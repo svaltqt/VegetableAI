@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-05-27T07:12:16.782Z",
+  "baseUrl": "http://127.0.0.1:5173",
+  "apiUrl": "http://localhost:3000/api",
+  "qaUser": "vegetableai.qa.codex@example.com",
+  "results": [
+    {
+      "name": "Carga de login",
+      "status": "PASSED",
+      "details": "La pantalla publica de login carga con formulario.",
+      "screenshot": "./test-results/screenshots/01-login.png",
+      "url": "http://127.0.0.1:5173/login"
+    },
+    {
+      "name": "Proteccion de ruta /dashboard sin sesion",
+      "status": "PASSED",
+      "details": "Sin sesion, /dashboard redirige a /login.",
+      "screenshot": "./test-results/screenshots/02-protected-redirect.png",
+      "url": "http://127.0.0.1:5173/login"
+    },
+    {
+      "name": "Inicio de sesion real",
+      "status": "PASSED",
+      "details": "Login con usuario QA confirmado. Productos preparados: 3.",
+      "screenshot": "./test-results/screenshots/03-dashboard-authenticated.png",
+      "url": "http://127.0.0.1:5173/dashboard"
+    },
+    {
+      "name": "Inventario autenticado con datos reales",
+      "status": "PASSED",
+      "details": "La vista lista productos reales del usuario QA desde backend/Supabase.",
+      "screenshot": "./test-results/screenshots/04-inventory-authenticated.png",
+      "url": "http://127.0.0.1:5173/inventory"
+    },
+    {
+      "name": "Formulario de producto diligenciado",
+      "status": "PASSED",
+      "details": "Se llenan campos del formulario dentro de la app antes de guardar.",
+      "screenshot": "./test-results/screenshots/05-product-form-filled.png",
+      "url": "http://127.0.0.1:5173/inventory/new"
+    },
+    {
+      "name": "Creacion de producto desde UI",
+      "status": "PASSED",
+      "details": "El producto creado desde la app aparece en el inventario.",
+      "screenshot": "./test-results/screenshots/06-inventory-after-create.png",
+      "url": "http://127.0.0.1:5173/inventory"
+    },
+    {
+      "name": "Pantalla scanner OCR autenticada",
+      "status": "PASSED",
+      "details": "La pantalla scanner se abre dentro de sesion autenticada.",
+      "screenshot": "./test-results/screenshots/07-scanner-authenticated.png",
+      "url": "http://127.0.0.1:5173/scanner"
+    },
+    {
+      "name": "Alertas autenticadas",
+      "status": "PASSED",
+      "details": "La vista de alertas muestra alerta preparada para el usuario QA.",
+      "screenshot": "./test-results/screenshots/08-alerts-authenticated.png",
+      "url": "http://127.0.0.1:5173/alerts"
+    },
+    {
+      "name": "Perfil autenticado",
+      "status": "PASSED",
+      "details": "La vista de perfil abre dentro de la sesion real del usuario QA.",
+      "screenshot": "./test-results/screenshots/09-profile-authenticated.png",
+      "url": "http://127.0.0.1:5173/profile"
+    },
+    {
+      "name": "Backend protegido: inventario con token de sesion activa",
+      "status": "PASSED",
+      "details": "HTTP 200. Respuesta: [{\"id\":\"4bce67de-5cc8-4ae1-9aaf-3a4b2444323b\",\"user_id\":\"baf2c43f-fff6-42fa-85c4-93099a7f46b7\",\"name\":\"QA Lechuga fresca\",\"category\":\"verdura\",\"expiration_date\":\"2026-06-03\",\"image_url\":null,\"created_at\":\"2026-05-27T07:11:54.959136+00:00\",\"status\":\"Vigente\",\"days_left\":7},{\"id\":\"9b6d2a44-610e-4128-9",
+      "screenshot": null,
+      "url": "http://localhost:3000/api/inventory"
+    },
+    {
+      "name": "Cierre de sesion",
+      "status": "PASSED",
+      "details": "La app muestra confirmacion y vuelve a login despues de cerrar sesion.",
+      "screenshot": "./test-results/screenshots/10-logout.png",
+      "url": "http://127.0.0.1:5173/login"
+    },
+    {
+      "name": "Backend publico: VAPID public key",
+      "status": "PASSED",
+      "details": "HTTP 200. Respuesta: {}",
+      "screenshot": null,
+      "url": "http://localhost:3000/api/notifications/vapid-public-key"
+    },
+    {
+      "name": "Backend protegido: inventario sin token",
+      "status": "PASSED",
+      "details": "HTTP 401. Respuesta: {\"error\":\"Autorización denegada. Envía un Bearer Token.\"}",
+      "screenshot": null,
+      "url": "http://localhost:3000/api/inventory"
+    }
+  ],
+  "consoleErrors": [],
+  "failedRequests": []
+}
