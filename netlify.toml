@@ -1,0 +1,22 @@
+# Configuración de Netlify para el frontend (monorepo).
+# Conecta este repositorio en Netlify; con esto detecta todo automáticamente.
+# Las variables de entorno (VITE_*) se configuran en el panel de Netlify,
+# NO aquí (este archivo se versiona y sería público):
+#   VITE_SUPABASE_URL       = https://TU-PROYECTO.supabase.co
+#   VITE_SUPABASE_ANON_KEY  = <anon key, NUNCA la service_role>
+#   VITE_API_BASE_URL       = https://TU-BACKEND.koyeb.app/api
+#   VITE_VAPID_PUBLIC_KEY   = <clave pública VAPID>
+
+[build]
+  base = "frontend"          # construye dentro de /frontend
+  command = "npm run build"
+  publish = "dist"           # relativo a base -> frontend/dist
+
+[build.environment]
+  NODE_VERSION = "20"        # Vite 5 requiere Node 18/20/22
+
+# SPA: cualquier ruta sirve index.html (evita 404 al recargar /scanner, etc.)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
