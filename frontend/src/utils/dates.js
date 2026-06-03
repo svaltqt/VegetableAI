@@ -71,15 +71,48 @@ export function humanizeDays(days) {
   return `Vence en ${days} días`
 }
 
+const MONTH_MAP = {
+  ENE: 1, JAN: 1, FEB: 2, MAR: 3, ABR: 4, APR: 4, MAY: 5, JUN: 6, JUL: 7,
+  AGO: 8, AUG: 8, SEP: 9, SET: 9, OCT: 10, NOV: 11, DIC: 12, DEC: 12,
+}
+
+const ALPHA_MONTH = Object.keys(MONTH_MAP).join("|")
+
 const DATE_REGEXES = [
-  /\b(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})\b/g,
-  /\b(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})\b/g,
-  /\b(\d{1,2})\s+(ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|SEP|OCT|NOV|DIC|JAN|APR|AUG|DEC)\s+(\d{2,4})\b/gi,
+  // Numéricas con separador y espacios opcionales: 28-11-2026, 22 - 08 - 2025, 12/04/26
+  /\b(\d{1,2})\s*[/\-.]\s*(\d{1,2})\s*[/\-.]\s*(\d{2,4})\b/g,
+  /\b(\d{4})\s*[/\-.]\s*(\d{1,2})\s*[/\-.]\s*(\d{1,2})\b/g,
+  // Alfanuméricas: 15 ABR 2026, 15-MAR-2027
+  new RegExp(`\\b(\\d{1,2})\\s*[-/. ]?\\s*(${ALPHA_MONTH})[A-Z]*\\.?\\s*[-/. ]?\\s*(\\d{2,4})\\b`, "gi"),
+  // Compactas sin separador: 28012018, 280118
+  /\b(\d{8}|\d{6})\b/g,
 ]
 
-const MONTH_MAP = {
-  ENE: 1, JAN: 1, FEB: 2, MAR: 2, ABR: 4, APR: 4, MAY: 5, JUN: 6, JUL: 7,
-  AGO: 8, AUG: 8, SEP: 9, OCT: 10, NOV: 11, DIC: 12, DEC: 12,
+/** Construye una fecha local válida o null, normalizando años de 2 dígitos. */
+function buildDate(day, month, year) {
+  if (year < 100) year += 2000
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null
+  const candidate = new Date(year, month - 1, day)
+  if (!isValid(candidate) || candidate.getDate() !== day) return null
+  return candidate
+}
+
+/** Interpreta una secuencia compacta de 6 u 8 dígitos como fecha. */
+function parseCompactDigits(digits) {
+  if (digits.length === 8) {
+    return (
+      buildDate(+digits.slice(0, 2), +digits.slice(2, 4), +digits.slice(4, 8)) ||
+      buildDate(+digits.slice(6, 8), +digits.slice(4, 6), +digits.slice(0, 4)) ||
+      buildDate(+digits.slice(2, 4), +digits.slice(0, 2), +digits.slice(4, 8))
+    )
+  }
+  if (digits.length === 6) {
+    return (
+      buildDate(+digits.slice(0, 2), +digits.slice(2, 4), +digits.slice(4, 6)) ||
+      buildDate(+digits.slice(4, 6), +digits.slice(2, 4), +digits.slice(0, 2))
+    )
+  }
+  return null
 }
 
 export function extractDateFromText(text) {
@@ -87,25 +120,67 @@ export function extractDateFromText(text) {
   for (const regex of DATE_REGEXES) {
     const matches = [...text.matchAll(regex)]
     for (const m of matches) {
-      let year, month, day
+      let candidate = null
       if (m[2] && MONTH_MAP[m[2].toUpperCase()]) {
-        day = parseInt(m[1], 10)
-        month = MONTH_MAP[m[2].toUpperCase()]
-        year = parseInt(m[3], 10)
-      } else if (m[1].length === 4) {
-        year = parseInt(m[1], 10)
-        month = parseInt(m[2], 10)
-        day = parseInt(m[3], 10)
+        candidate = buildDate(parseInt(m[1], 10), MONTH_MAP[m[2].toUpperCase()], parseInt(m[3], 10))
+      } else if (m[3]) {
+        candidate = m[1].length === 4
+          ? buildDate(parseInt(m[3], 10), parseInt(m[2], 10), parseInt(m[1], 10))
+          : buildDate(parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3], 10))
       } else {
-        day = parseInt(m[1], 10)
-        month = parseInt(m[2], 10)
-        year = parseInt(m[3], 10)
+        candidate = parseCompactDigits(m[1])
       }
-      if (year < 100) year += 2000
-      if (month < 1 || month > 12 || day < 1 || day > 31) continue
-      const candidate = new Date(year, month - 1, day)
-      if (isValid(candidate)) return candidate
+      if (candidate) return candidate
     }
   }
   return null
+}
+
+// Palabras clave para distinguir vencimiento de producción/lote en una etiqueta.
+const EXP_KEYWORDS = /(VEN|CAD|EXP|CONS|BEST\s*BEF|USE\s*BY|\bBB\b|ANTES)/
+const PROD_KEYWORDS = /(PROD|FAB|ELAB|MFG|MFD|ENVAS|LOTE)/
+
+/** Clasifica un candidato según la etiqueta que lo precede (ventana de 20 chars). */
+function classifyDate(text, index) {
+  const window = text.slice(Math.max(0, index - 20), index)
+  if (EXP_KEYWORDS.test(window)) return "exp"
+  if (PROD_KEYWORDS.test(window)) return "prod"
+  return "neutral"
+}
+
+/**
+ * Extrae la FECHA DE VENCIMIENTO de un texto OCR, anclando en palabras clave
+ * (EXP/VENCE/CAD) y descartando producción/lote (PROD/FAB/LOTE). Soporta
+ * fechas con separador, alfanuméricas y compactas. Devuelve { iso, raw } o null.
+ */
+export function extractExpirationFromText(text) {
+  if (!text) return null
+  const upper = text.toUpperCase()
+  const candidates = []
+
+  for (const regex of DATE_REGEXES) {
+    for (const m of upper.matchAll(regex)) {
+      let date = null
+      if (m[2] && MONTH_MAP[m[2].toUpperCase()]) {
+        date = buildDate(parseInt(m[1], 10), MONTH_MAP[m[2].toUpperCase()], parseInt(m[3], 10))
+      } else if (m[3]) {
+        date = m[1].length === 4
+          ? buildDate(parseInt(m[3], 10), parseInt(m[2], 10), parseInt(m[1], 10))
+          : buildDate(parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3], 10))
+      } else {
+        date = parseCompactDigits(m[1])
+      }
+      if (date) {
+        candidates.push({ iso: format(date, "yyyy-MM-dd"), raw: m[0], label: classifyDate(upper, m.index) })
+      }
+    }
+  }
+
+  if (!candidates.length) return null
+  const pickLatest = (arr) => arr.reduce((a, b) => (b.iso > a.iso ? b : a))
+  const exp = candidates.filter((c) => c.label === "exp")
+  if (exp.length) return pickLatest(exp)
+  const neutral = candidates.filter((c) => c.label === "neutral")
+  if (neutral.length) return pickLatest(neutral)
+  return pickLatest(candidates)
 }

@@ -277,7 +277,7 @@ Backend devuelve string en español; el frontend lo normaliza con `BACKEND_STATU
 
 ### 5.2 OCR — formato de fecha
 
-Backend devuelve `{ success, textExtracted, detectedDate }` con `detectedDate` como **string crudo** (`"12/04/2026"`, `"11 OCT 2017"`, etc.). El frontend lo convierte a ISO `yyyy-MM-dd` con `extractDateFromText()` (`utils/dates.js`).
+Backend devuelve `{ success, textExtracted, detectedDate, detectedRaw }`. `detectedDate` ya viene **normalizado en ISO `yyyy-MM-dd`** (el backend ancla en palabras clave `EXP/VENCE/CAD` vs `PROD/FAB`, soporta fechas compactas tipo `28012018` y valida rangos); `detectedRaw` es el texto crudo coincidente. El frontend lo consume con `parseDateInput()` y conserva `extractDateFromText()` como respaldo (`utils/dates.js`).
 
 ### 5.3 Profile — origen mixto
 

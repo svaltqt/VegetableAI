@@ -1,6 +1,6 @@
 import { useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Camera, FolderOpen, RotateCcw, ImageIcon, AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
+import { Camera, FolderOpen, RotateCcw, ImageIcon, AlertCircle, CheckCircle2, Loader2, X } from "lucide-react"
 import { Topbar } from "@/components/layout/Topbar"
 import { PageContainer } from "@/components/layout/PageContainer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { CameraCapture } from "@/components/scanner/CameraCapture"
+import { ocrService } from "@/services/ocr.service"
 import { useOCR } from "@/hooks/useOCR"
 import { useCreateProduct } from "@/hooks/useProducts"
 import { useToast } from "@/hooks/useToast"
@@ -34,17 +35,52 @@ export default function Scanner() {
   const [productName, setProductName] = useState("")
   const [productCategory, setProductCategory] = useState("")
   const [editableDate, setEditableDate] = useState("")
+  const [ai, setAi] = useState({ status: "idle", elapsed: 0 }) // idle | running | done | error
+  const aiAbortRef = useRef(null)
 
   const ocrMutation = useOCR()
   const createMutation = useCreateProduct()
 
   const reset = () => {
+    aiAbortRef.current?.abort()
     setImageFile(null)
     setImagePreview(null)
     setOcrResult(null)
     setProductName("")
     setProductCategory("")
     setEditableDate("")
+    setAi({ status: "idle", elapsed: 0 })
+  }
+
+  // Respaldo con IA (visión en el backend, asíncrono) cuando el OCR local falla.
+  const runAiFallback = async (file) => {
+    aiAbortRef.current = new AbortController()
+    setAi({ status: "running", elapsed: 0 })
+    try {
+      const result = await ocrService.processWithAI(file, {
+        signal: aiAbortRef.current.signal,
+        onTick: (segundos) => setAi((p) => ({ ...p, elapsed: segundos })),
+      })
+      setOcrResult(result)
+      if (result.success && result.expiration_date) {
+        setEditableDate(result.expiration_date)
+        toast.success("Fecha detectada. Confirma o ajusta los datos.")
+        setAi({ status: "done", elapsed: 0 })
+      } else {
+        toast.warning("No se detectó una fecha clara. Ingrésala manualmente.")
+        setAi({ status: "done", elapsed: 0 })
+      }
+    } catch (err) {
+      setAi({ status: "error", elapsed: 0 })
+      if (!/cancelad/i.test(err.message || "")) {
+        toast.error(err.message || "No se pudo procesar la imagen.")
+      }
+    }
+  }
+
+  const cancelAi = () => {
+    aiAbortRef.current?.abort()
+    setAi({ status: "idle", elapsed: 0 })
   }
 
   const handleFileSelected = async (file) => {
@@ -53,6 +89,7 @@ export default function Scanner() {
       toast.error(validation.message)
       return
     }
+    aiAbortRef.current?.abort()
     setImageFile(file)
     setImagePreview((prev) => {
       if (prev) URL.revokeObjectURL(prev)
@@ -60,6 +97,7 @@ export default function Scanner() {
     })
     setOcrResult(null)
     setEditableDate("")
+    setAi({ status: "idle", elapsed: 0 })
     ocrMutation.reset()
 
     try {
@@ -69,9 +107,8 @@ export default function Scanner() {
         setEditableDate(result.expiration_date)
         toast.success("Fecha detectada. Confirma o ajusta los datos.")
       } else {
-        toast.warning(
-          "No se detectó una fecha clara. Puedes registrarla manualmente o intentar con otra imagen."
-        )
+        // El OCR local no encontró fecha → intentamos con IA automáticamente.
+        runAiFallback(file)
       }
     } catch (err) {
       toast.error(err.message || "Error al procesar la imagen.")
@@ -199,11 +236,29 @@ export default function Scanner() {
             {ocrMutation.isPending ? (
               <div className="rounded-lg border bg-secondary px-3 py-3 flex items-center gap-3 text-sm">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                <span>Procesando imagen con OCR…</span>
+                <span>
+                  Analizando la imagen
+                  {ocrMutation.progress > 0 ? ` · ${ocrMutation.progress}%` : "…"}
+                </span>
               </div>
             ) : null}
 
-            {ocrResult && !ocrResult.success ? (
+            {ai.status === "running" ? (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-3 flex items-start gap-3 text-sm">
+                <Loader2 className="h-4 w-4 mt-0.5 text-primary animate-spin" />
+                <div className="flex-1">
+                  <p className="font-semibold text-foreground">Analizando la imagen…</p>
+                  <p className="text-xs text-muted-foreground">
+                    Estamos afinando la lectura, puede tardar un momento{ai.elapsed > 0 ? ` · ${ai.elapsed}s` : ""}. Puedes esperar o cancelar.
+                  </p>
+                </div>
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={cancelAi}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : null}
+
+            {ocrResult && !ocrResult.success && ai.status !== "running" ? (
               <div className="rounded-lg border border-status-warning/30 bg-status-warning-bg/60 px-3 py-3 flex items-start gap-3 text-sm text-status-warning">
                 <AlertCircle className="h-4 w-4 mt-0.5" />
                 <div>
@@ -216,15 +271,25 @@ export default function Scanner() {
             ) : null}
 
             {ocrResult?.success ? (
-              <div className="rounded-lg border border-status-fresh/30 bg-status-fresh-bg/60 px-3 py-3 flex items-start gap-3 text-sm text-status-fresh">
-                <CheckCircle2 className="h-4 w-4 mt-0.5" />
+              <div className="rounded-lg border border-status-fresh/30 bg-status-fresh-bg/60 px-3 py-3 flex items-center gap-3 text-sm text-status-fresh">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
                 <div>
                   <p className="font-semibold">Fecha detectada</p>
-                  <p className="text-xs">
-                    Texto leído: <span className="font-mono">{ocrResult.raw_text}</span>
+                  <p className="text-base font-bold font-mono tracking-wide">
+                    {formatDateLocal(editableDate) || editableDate}
                   </p>
                 </div>
               </div>
+            ) : null}
+
+            {imageFile && ai.status !== "running" && !ocrMutation.isPending ? (
+              <button
+                type="button"
+                onClick={() => runAiFallback(imageFile)}
+                className="w-full text-center text-xs text-primary hover:underline"
+              >
+                ¿La fecha no es correcta o no aparece? Analizar a fondo
+              </button>
             ) : null}
           </CardContent>
         </Card>
@@ -302,8 +367,8 @@ export default function Scanner() {
         ) : null}
 
         <p className="text-[11px] text-muted-foreground text-center px-4">
-          Las imágenes capturadas se utilizan exclusivamente para extraer la fecha de
-          vencimiento. No se compartirán con terceros (OR-01, OR-02).
+          El reconocimiento ocurre <strong>en tu propio dispositivo</strong>: la imagen nunca
+          se sube a ningún servidor ni se comparte con terceros (OR-01, OR-02).
         </p>
       </PageContainer>
     </>
