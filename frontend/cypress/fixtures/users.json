@@ -1,0 +1,9 @@
+{
+  "valid": { "email": "demo@vegetableai.app", "password": "Password1" },
+  "newAccount": {
+    "fullName": "María González",
+    "email": "maria@correo.com",
+    "password": "Password1",
+    "confirmPassword": "Password1"
+  }
+}

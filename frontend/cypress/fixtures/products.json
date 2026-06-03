@@ -1,0 +1,6 @@
+{
+  "existing": ["Leche entera", "Arroz integral", "Atún en lata", "Yogurt natural"],
+  "toDelete": "Atún en lata",
+  "toEdit": "Arroz integral",
+  "editedName": "Arroz integral premium"
+}

@@ -27,6 +27,11 @@ build/Release
 # Tesseract OCR language models (se descargan en tiempo de ejecución)
 *.traineddata
 
+# Cypress (artefactos de ejecución)
+cypress/videos/
+cypress/screenshots/
+cypress/downloads/
+
 # Framework build output and caches
 .cache
 .parcel-cache
