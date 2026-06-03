@@ -14,8 +14,8 @@
     "preview": "vite preview",
     "cy:open": "cypress open --e2e",
     "cy:run": "cypress run --e2e",
-    "test:e2e": "start-server-and-test \"vite --mode test --port 4173 --strictPort\" http://localhost:4173 \"cypress run --e2e\"",
-    "test:e2e:open": "start-server-and-test \"vite --mode test --port 4173 --strictPort\" http://localhost:4173 \"cypress open --e2e\""
+    "test:e2e": "start-server-and-test \"vite --mode test --host 127.0.0.1 --port 4173 --strictPort\" http://127.0.0.1:4173 \"cypress run --e2e\"",
+    "test:e2e:open": "start-server-and-test \"vite --mode test --host 127.0.0.1 --port 4173 --strictPort\" http://127.0.0.1:4173 \"cypress open --e2e\""
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.5.2",
