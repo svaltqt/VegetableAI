@@ -1,29 +1,25 @@
 // backend/src/routes/chat.routes.js
 import { Router } from 'express';
-import { getChatResponse, checkConnection } from '../../../IA/agent.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
+import { handleChat, handleChatStream } from '../controllers/chat.controller.js';
+import { checkConnection } from '../../../IA/agent.js';
 
 const router = Router();
 
 /**
- * POST /api/chat
+ * POST /api/chat  (autenticado)
  * Body: { message: string, history?: [{ role, content }] }
  * Response: { reply: string }
+ *
+ * El asistente recibe el inventario real y el nombre del usuario autenticado.
  */
-router.post('/', async (req, res) => {
-  try {
-    const { message, history } = req.body;
+router.post('/', authenticate, handleChat);
 
-    if (!message || typeof message !== 'string') {
-      return res.status(400).json({ error: 'El campo "message" es requerido.' });
-    }
-
-    const reply = await getChatResponse(message, history || []);
-    return res.json({ reply });
-  } catch (err) {
-    console.error('Chat error:', err.message);
-    return res.status(500).json({ error: 'Error al generar respuesta del chat.', details: err.message });
-  }
-});
+/**
+ * POST /api/chat/stream  (autenticado)
+ * Respuesta en streaming (SSE) token por token. Evita timeouts.
+ */
+router.post('/stream', authenticate, handleChatStream);
 
 /**
  * GET /api/chat/health
