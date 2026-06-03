@@ -19,6 +19,8 @@ CREATE TABLE public.inventory (
   category TEXT DEFAULT 'general',
   expiration_date DATE NOT NULL,
   image_url TEXT,
+  quantity INTEGER DEFAULT 1,
+  notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
