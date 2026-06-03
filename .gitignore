@@ -24,6 +24,9 @@ build/Release
 # TypeScript cache
 *.tsbuildinfo
 
+# Tesseract OCR language models (se descargan en tiempo de ejecución)
+*.traineddata
+
 # Framework build output and caches
 .cache
 .parcel-cache
