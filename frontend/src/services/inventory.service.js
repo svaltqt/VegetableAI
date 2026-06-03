@@ -14,11 +14,11 @@ import { computeStatus } from "@/utils/status"
  *   DELETE /api/inventory/:id  → { success: true, deleted: [...] }
  *
  * There is no /summary endpoint; it is computed client-side from the list.
- * `quantity`, `notes` and `source` are not yet columns in the backend table,
- * so they are stripped before sending.
+ * `quantity` (int) y `notes` (text) sí son columnas del inventario. `source`
+ * no lo es, así que se descarta antes de enviar.
  */
 
-const ALLOWED_FIELDS = ["name", "category", "expiration_date", "image_url"]
+const ALLOWED_FIELDS = ["name", "category", "expiration_date", "image_url", "quantity", "notes"]
 
 function sanitizeForBackend(payload) {
   return Object.fromEntries(

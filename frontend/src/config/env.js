@@ -1,11 +1,18 @@
 const getDynamicApiUrl = () => {
+  // En producción define SIEMPRE VITE_API_BASE_URL (se hornea en build).
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL;
   }
   if (typeof window !== "undefined" && window.location) {
-    const hostname = window.location.hostname;
-    // Si estás en producción o tienes SSL, o en un celular, apuntamos al puerto 3000 de esa misma máquina
-    return `http://${hostname}:3000/api`;
+    const { protocol, hostname } = window.location;
+    const isLocal =
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(hostname);
+    // Dev / red LAN: backend en el puerto 3000 de la misma máquina (respeta http/https).
+    if (isLocal) return `${protocol}//${hostname}:3000/api`;
+    // Producción: mismo origen detrás de reverse proxy → evita mixed content y CORS.
+    return "/api";
   }
   return "http://localhost:3000/api";
 };

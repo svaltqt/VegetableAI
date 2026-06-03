@@ -79,15 +79,21 @@ export function ProductCard({ product, onDelete, editTo }) {
           </DropdownMenu>
         </div>
 
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           <StatusBadge status={product.status} expirationDate={product.expiration_date} withDays />
           {product.quantity ? (
-            <span className="text-[11px] text-muted-foreground">x{product.quantity}</span>
+            <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground">
+              × {product.quantity}
+            </span>
           ) : null}
           {product.source === "ocr" ? (
             <span className="text-[11px] uppercase tracking-wider text-primary/80">OCR</span>
           ) : null}
         </div>
+
+        {product.notes ? (
+          <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground">{product.notes}</p>
+        ) : null}
       </div>
     </article>
   )

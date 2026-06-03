@@ -16,6 +16,7 @@ export function ProductTable({ products = [], onDelete, getEditPath }) {
           <tr>
             <th className="px-5 py-3">Producto</th>
             <th className="px-5 py-3">Categoría</th>
+            <th className="px-5 py-3">Cantidad</th>
             <th className="px-5 py-3">Vencimiento</th>
             <th className="px-5 py-3">Estado</th>
             <th className="px-5 py-3 text-right">Acciones</th>
@@ -31,6 +32,7 @@ export function ProductTable({ products = [], onDelete, getEditPath }) {
                 ) : null}
               </td>
               <td className="px-5 py-3.5 capitalize text-muted-foreground">{p.category}</td>
+              <td className="px-5 py-3.5 text-muted-foreground">{p.quantity ? `× ${p.quantity}` : "—"}</td>
               <td className="px-5 py-3.5 text-muted-foreground">{formatDateLocal(p.expiration_date)}</td>
               <td className="px-5 py-3.5">
                 <StatusBadge status={p.status} />

@@ -51,6 +51,7 @@ function App() {
                 <Route path={ROUTES.INVENTORY} element={<Inventory />} />
                 <Route path={ROUTES.PRODUCT_NEW} element={<ProductForm />} />
                 <Route path={ROUTES.PRODUCT_EDIT} element={<ProductForm />} />
+
                 <Route path={ROUTES.SCANNER} element={<Scanner />} />
                 <Route path={ROUTES.ALERTS} element={<Alerts />} />
                 <Route path={ROUTES.PROFILE} element={<Profile />} />

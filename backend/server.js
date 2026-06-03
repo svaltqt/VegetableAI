@@ -8,6 +8,7 @@ import inventoryRoutes from './src/routes/inventory.routes.js';
 import usersRoutes from './src/routes/users.routes.js';
 import alertsRoutes from './src/routes/alerts.routes.js';
 import notificationsRoutes from './src/routes/notifications.routes.js';
+import chatRoutes from './src/routes/chat.routes.js';
 
 // Importación de Cron Jobs
 import { initAlertsCron } from './src/jobs/alerts.job.js';
@@ -24,6 +25,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/alerts', alertsRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/chat', chatRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

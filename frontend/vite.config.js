@@ -21,7 +21,13 @@ export default defineConfig({
       filename: 'sw.js',
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      includeAssets: ['favicon.svg', 'icons/icon.svg', 'icons/maskable.svg'],
+      includeAssets: [
+        'favicon.svg',
+        'icons/icon.svg',
+        'icons/maskable.svg',
+        'icons/apple-touch-icon.png',
+        'splash/*.png',
+      ],
       manifest: {
         name: 'VegetableAI',
         short_name: 'VegetableAI',
@@ -36,8 +42,10 @@ export default defineConfig({
         background_color: '#ffffff',
         categories: ['food', 'lifestyle', 'productivity'],
         icons: [
+          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
           { src: '/icons/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
-          { src: '/icons/maskable.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },
         ],
         shortcuts: [
           {

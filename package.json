@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "langchain": "^1.4.4",
+    "node-ssh": "^13.2.1"
+  }
+}
